@@ -41,13 +41,15 @@ void splunkpost(String collectorToken,String PostData, String Host, String splun
   // fire at will!! 
   http.begin(splunkurl);
   http.addHeader("Content-Type", "application/json");
-  Serial.println(tokenValue);
+  //Serial.println(tokenValue);
   http.addHeader("Authorization", tokenValue);
+  Serial.print("splunking: ");
   Serial.println(payload);
   String contentlength = String(payload.length());
   http.addHeader("Content-Length", contentlength );
   http.POST(payload);
   http.writeToStream(&Serial);
+  Serial.println();
   http.end();
  
 }
@@ -93,15 +95,14 @@ void loop()
     WiFiManager.loop();
     updater.loop();    
 
-    // Wait 1 seconds and print the time
-    delay(2000);
-    digitalWrite(LED_BUILTIN, LOW);
-
+    // Wait and print the time
     time_t now = time(nullptr);
     Serial.print(PSTR("Current UTC: "));
     Serial.print(asctime(localtime(&now)));   
 
-    delay(3000);
+    delay(5000);
+    digitalWrite(LED_BUILTIN, LOW);
+    delay(5000);
     digitalWrite(LED_BUILTIN, HIGH);
 
 
@@ -118,6 +119,7 @@ void loop()
   // Check if any reads failed and exit early (to try again).
   if (isnan(h) || isnan(t) || isnan(f)) {
     Serial.println(F("Failed to read from DHT sensor!"));
+    delay(2000);
     return;
   }
 
@@ -137,6 +139,8 @@ void loop()
   Serial.print(F("°C "));
   Serial.print(hif);
   Serial.println(F("°F"));
+  Serial.println();
+
 
   // SPLUNK NOW
   // build the event data, telemtry and metrics type of data goes below
@@ -144,7 +148,7 @@ void loop()
   //eventData="\"clientname\": \""+clientName + "\",\"message_recieved\": \""+String(msgString)+"\"";
   eventData = "{ \"host\" : \"" + clientName + "\", \"sourcetype\" : \"diySensor\", \"index\" : \"esp8266hec\", \"event\" :  {\"temp\" : \"" + t + "\" , \"heatindex\" : \"" + hic + "\" , \"humidity\": \"" + h + "\" }}";
 
-  Serial.println(eventData);
+  //Serial.println(eventData);
   //send off the data
   splunkpost(collectorToken,eventData,clientName,splunkindexer); 
 
