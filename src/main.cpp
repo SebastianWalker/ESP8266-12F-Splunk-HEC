@@ -22,10 +22,12 @@
 String collectorToken = "13b98a55-2060-4754-b639-072af70ae770";
 String splunkindexer = "192.168.1.121:32773";
 String eventData="";
-
 //you need a different client per board
 String clientName ="HQ";
 
+// variables for timing
+static unsigned long msTickLED = 0;
+static unsigned long msTickSplunk = 0;
 
 void splunkpost(String collectorToken,String PostData, String Host, String splunkindexer)
 {
@@ -86,7 +88,8 @@ void setup()
     }
 
 
-    pinMode(LED_BUILTIN, OUTPUT);
+    pinMode(D8, OUTPUT);
+    digitalWrite(D8, HIGH);
 }
 
 void loop()
@@ -95,62 +98,63 @@ void loop()
     WiFiManager.loop();
     updater.loop();    
 
+    // toggle LED every second
+    if (millis() - msTickLED > 1000) {
+        msTickLED = millis();
+        digitalWrite(D8, !digitalRead(D8));
+        //digitalWrite(LED_BUILTIN, (millis() / 1000) % 2); // doesnt even need a timer ... can be placed just inside the loop
+    }
+
+if (millis() - msTickSplunk > 5000){
+    msTickSplunk = millis();
+
     // Wait and print the time
     time_t now = time(nullptr);
     Serial.print(PSTR("Current UTC: "));
     Serial.print(asctime(localtime(&now)));   
 
-    delay(5000);
-    digitalWrite(LED_BUILTIN, LOW);
-    delay(5000);
-    digitalWrite(LED_BUILTIN, HIGH);
 
+    // Reading temperature or humidity takes about 250 milliseconds!
+    // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
+    float h = dht.readHumidity();
+    // Read temperature as Celsius (the default)
+    float t = dht.readTemperature();
+    // Read temperature as Fahrenheit (isFahrenheit = true)
+    float f = dht.readTemperature(true);
 
-    
+    // Check if any reads failed and exit early (to try again).
+    if (isnan(h) || isnan(t) || isnan(f)) {
+      Serial.println(F("Failed to read from DHT sensor!"));
+      delay(2000);
+      return;
+    }
 
-      // Reading temperature or humidity takes about 250 milliseconds!
-  // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
-  float h = dht.readHumidity();
-  // Read temperature as Celsius (the default)
-  float t = dht.readTemperature();
-  // Read temperature as Fahrenheit (isFahrenheit = true)
-  float f = dht.readTemperature(true);
+    // Compute heat index in Fahrenheit (the default)
+    float hif = dht.computeHeatIndex(f, h);
+    // Compute heat index in Celsius (isFahreheit = false)
+    float hic = dht.computeHeatIndex(t, h, false);
 
-  // Check if any reads failed and exit early (to try again).
-  if (isnan(h) || isnan(t) || isnan(f)) {
-    Serial.println(F("Failed to read from DHT sensor!"));
-    delay(2000);
-    return;
+    Serial.print(F("Humidity: "));
+    Serial.print(h);
+    Serial.print(F("%  Temperature: "));
+    Serial.print(t);
+    Serial.print(F("°C "));
+    Serial.print(f);
+    Serial.print(F("°F  Heat index: "));
+    Serial.print(hic);
+    Serial.print(F("°C "));
+    Serial.print(hif);
+    Serial.println(F("°F"));
+    Serial.println();
+
+    // SPLUNK NOW
+    // build the event data, telemtry and metrics type of data goes below
+    //String msgString ="asdf";
+    //eventData="\"clientname\": \""+clientName + "\",\"message_recieved\": \""+String(msgString)+"\"";
+    eventData = "{ \"host\" : \"" + clientName + "\", \"sourcetype\" : \"diySensor\", \"index\" : \"esp8266hec\", \"event\" :  {\"temp\" : \"" + t + "\" , \"heatindex\" : \"" + hic + "\" , \"humidity\": \"" + h + "\" }}";
+
+    //Serial.println(eventData);
+    //send off the data
+    splunkpost(collectorToken,eventData,clientName,splunkindexer); 
   }
-
-  // Compute heat index in Fahrenheit (the default)
-  float hif = dht.computeHeatIndex(f, h);
-  // Compute heat index in Celsius (isFahreheit = false)
-  float hic = dht.computeHeatIndex(t, h, false);
-
-  Serial.print(F("Humidity: "));
-  Serial.print(h);
-  Serial.print(F("%  Temperature: "));
-  Serial.print(t);
-  Serial.print(F("°C "));
-  Serial.print(f);
-  Serial.print(F("°F  Heat index: "));
-  Serial.print(hic);
-  Serial.print(F("°C "));
-  Serial.print(hif);
-  Serial.println(F("°F"));
-  Serial.println();
-
-
-  // SPLUNK NOW
-  // build the event data, telemtry and metrics type of data goes below
-  //String msgString ="asdf";
-  //eventData="\"clientname\": \""+clientName + "\",\"message_recieved\": \""+String(msgString)+"\"";
-  eventData = "{ \"host\" : \"" + clientName + "\", \"sourcetype\" : \"diySensor\", \"index\" : \"esp8266hec\", \"event\" :  {\"temp\" : \"" + t + "\" , \"heatindex\" : \"" + hic + "\" , \"humidity\": \"" + h + "\" }}";
-
-  //Serial.println(eventData);
-  //send off the data
-  splunkpost(collectorToken,eventData,clientName,splunkindexer); 
-
-
 }
