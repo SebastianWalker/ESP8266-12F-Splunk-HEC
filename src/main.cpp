@@ -17,6 +17,42 @@
   #define DHTTYPE DHT11  
   DHT dht(DHTPIN, DHTTYPE);
 
+// Stuff for Splunk
+// splunk settings and http collector token
+String collectorToken = "13b98a55-2060-4754-b639-072af70ae770";
+String splunkindexer = "192.168.1.121:32773";
+String eventData="";
+
+//you need a different client per board
+String clientName ="HQ";
+
+
+void splunkpost(String collectorToken,String PostData, String Host, String splunkindexer)
+{
+  // recieved the token, post data clienthost and the splunk indexer  
+  //String payload = "{ \"host\" : \"" + Host +"\", \"sourcetype\" : \"http_test\", \"index\" : \"main\", \"event\": {" + PostData + "}}";
+  String payload = PostData;
+
+  //Build the request
+  HTTPClient http;
+  String splunkurl="http://"+ splunkindexer +"/services/collector"; //removed :8088 due to DOCKER container port redirect.. port now lives in the splunkindexer variable
+  String tokenValue="Splunk " + collectorToken;
+  
+  // fire at will!! 
+  http.begin(splunkurl);
+  http.addHeader("Content-Type", "application/json");
+  Serial.println(tokenValue);
+  http.addHeader("Authorization", tokenValue);
+  Serial.println(payload);
+  String contentlength = String(payload.length());
+  http.addHeader("Content-Length", contentlength );
+  http.POST(payload);
+  http.writeToStream(&Serial);
+  http.end();
+ 
+}
+
+
 
 
 void setup()
@@ -27,6 +63,8 @@ void setup()
     GUI.begin();
     configManager.begin();
     WiFiManager.begin(configManager.data.projectName);
+
+
 
     //Set the timezone to UTC
     timeSync.begin();
@@ -55,15 +93,15 @@ void loop()
     WiFiManager.loop();
     updater.loop();    
 
-    // Wait five seconds and print the time
-    delay(5000);
+    // Wait 1 seconds and print the time
+    delay(2000);
     digitalWrite(LED_BUILTIN, LOW);
 
     time_t now = time(nullptr);
     Serial.print(PSTR("Current UTC: "));
     Serial.print(asctime(localtime(&now)));   
 
-    delay(5000);
+    delay(3000);
     digitalWrite(LED_BUILTIN, HIGH);
 
 
@@ -99,5 +137,16 @@ void loop()
   Serial.print(F("°C "));
   Serial.print(hif);
   Serial.println(F("°F"));
+
+  // SPLUNK NOW
+  // build the event data, telemtry and metrics type of data goes below
+  //String msgString ="asdf";
+  //eventData="\"clientname\": \""+clientName + "\",\"message_recieved\": \""+String(msgString)+"\"";
+  eventData = "{ \"host\" : \"" + clientName + "\", \"sourcetype\" : \"diySensor\", \"index\" : \"esp8266hec\", \"event\" :  {\"temp\" : \"" + t + "\" , \"heatindex\" : \"" + hic + "\" , \"humidity\": \"" + h + "\" }}";
+
+  Serial.println(eventData);
+  //send off the data
+  splunkpost(collectorToken,eventData,clientName,splunkindexer); 
+
 
 }
