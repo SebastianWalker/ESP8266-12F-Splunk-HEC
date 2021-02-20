@@ -17,6 +17,10 @@
   #define DHTTYPE DHT11  
   DHT dht(DHTPIN, DHTTYPE);
 
+// LDR input pin (ESP8266 only got one ADC on A0)
+#define LDR A0
+int LDRvalue = 0;
+
 // Stuff for Splunk
 // splunk settings and http collector token
 String collectorToken = "13b98a55-2060-4754-b639-072af70ae770";
@@ -57,8 +61,6 @@ void splunkpost(String collectorToken,String PostData, String Host, String splun
 }
 
 
-
-
 void setup()
 {
     Serial.begin(115200);
@@ -67,8 +69,6 @@ void setup()
     GUI.begin();
     configManager.begin();
     WiFiManager.begin(configManager.data.projectName);
-
-
 
     //Set the timezone to UTC
     timeSync.begin();
@@ -90,6 +90,8 @@ void setup()
 
     pinMode(D8, OUTPUT);
     digitalWrite(D8, HIGH);
+
+    pinMode(LDR, INPUT);
 }
 
 void loop()
@@ -113,6 +115,14 @@ if (millis() - msTickSplunk > 5000){
     Serial.print(PSTR("Current UTC: "));
     Serial.print(asctime(localtime(&now)));   
 
+    // Read the light intensity
+    LDRvalue=0; // reset
+    for(int i=0; i<4; i++){
+      LDRvalue = LDRvalue + analogRead(LDR); 
+      delay(10);
+    }
+    LDRvalue = map(LDRvalue / 4, 0,1024,0,100);
+    
 
     // Reading temperature or humidity takes about 250 milliseconds!
     // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
@@ -144,14 +154,22 @@ if (millis() - msTickSplunk > 5000){
     Serial.print(hic);
     Serial.print(F("°C "));
     Serial.print(hif);
-    Serial.println(F("°F"));
+    Serial.print(F("°F "));
+    Serial.print(F("Light: "));
+    Serial.print(LDRvalue);
+    Serial.println(F("i"));
     Serial.println();
 
     // SPLUNK NOW
     // build the event data, telemtry and metrics type of data goes below
     //String msgString ="asdf";
     //eventData="\"clientname\": \""+clientName + "\",\"message_recieved\": \""+String(msgString)+"\"";
-    eventData = "{ \"host\" : \"" + clientName + "\", \"sourcetype\" : \"diySensor\", \"index\" : \"esp8266hec\", \"event\" :  {\"temp\" : \"" + t + "\" , \"heatindex\" : \"" + hic + "\" , \"humidity\": \"" + h + "\" }}";
+    eventData = "{ \"host\" : \"" + clientName + "\", \"sourcetype\" : \"diySensor\", \"index\" : \"esp8266hec\", " 
+                "\"event\" :  {\"temp\" : \"" + t + "\" , "
+                "\"heatindex\" : \"" + hic + "\" , "
+                "\"humidity\": \"" + h + "\" , "
+                "\"lightIndex\": \"" + LDRvalue + "\" "
+                "}}";
 
     //Serial.println(eventData);
     //send off the data
