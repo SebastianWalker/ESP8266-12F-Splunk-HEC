@@ -23,8 +23,8 @@ int LDRvalue = 0;
 
 // Stuff for Splunk
 // splunk settings and http collector token
-String collectorToken = "13b98a55-2060-4754-b639-072af70ae770";
-String splunkindexer = "192.168.1.121:32773";
+//String collectorToken = "13b98a55-2060-4754-b639-072af70ae770";
+//String splunkindexer = "192.168.1.121:32773";
 String eventData="";
 //you need a different client per board
 String clientName ="HQ";
@@ -33,7 +33,7 @@ String clientName ="HQ";
 static unsigned long msTickLED = 0;
 static unsigned long msTickSplunk = 0;
 
-void splunkpost(String collectorToken,String PostData, String Host, String splunkindexer)
+void splunkpost(String collectorToken,String PostData, String splunkindexer)
 {
   // recieved the token, post data clienthost and the splunk indexer  
   //String payload = "{ \"host\" : \"" + Host +"\", \"sourcetype\" : \"http_test\", \"index\" : \"main\", \"event\": {" + PostData + "}}";
@@ -106,8 +106,8 @@ void loop()
         digitalWrite(D8, !digitalRead(D8));
         //digitalWrite(LED_BUILTIN, (millis() / 1000) % 2); // doesnt even need a timer ... can be placed just inside the loop
     }
-
-if (millis() - msTickSplunk > 5000){
+if (millis() - msTickSplunk > configManager.data.updateSpeed){
+//if (millis() - msTickSplunk > 5000){
     msTickSplunk = millis();
 
     // Wait and print the time
@@ -135,7 +135,7 @@ if (millis() - msTickSplunk > 5000){
     // Check if any reads failed and exit early (to try again).
     if (isnan(h) || isnan(t) || isnan(f)) {
       Serial.println(F("Failed to read from DHT sensor!"));
-      delay(2000);
+      //delay(2000);
       return;
     }
 
@@ -162,17 +162,18 @@ if (millis() - msTickSplunk > 5000){
 
     // SPLUNK NOW
     // build the event data, telemtry and metrics type of data goes below
-    //String msgString ="asdf";
-    //eventData="\"clientname\": \""+clientName + "\",\"message_recieved\": \""+String(msgString)+"\"";
+    clientName = configManager.data.clientName;
     eventData = "{ \"host\" : \"" + clientName + "\", \"sourcetype\" : \"diySensor\", \"index\" : \"esp8266hec\", " 
                 "\"event\" :  {\"temp\" : \"" + t + "\" , "
                 "\"heatindex\" : \"" + hic + "\" , "
                 "\"humidity\": \"" + h + "\" , "
-                "\"lightIndex\": \"" + LDRvalue + "\" "
+                "\"lightIndex\": \"" + LDRvalue + "\" , "
+                "\"uptime\": \"" + millis()/1000 + "\" "
                 "}}";
 
     //Serial.println(eventData);
     //send off the data
-    splunkpost(collectorToken,eventData,clientName,splunkindexer); 
+    //splunkpost(collectorToken, eventData, clientName, splunkindexer); 
+    splunkpost(configManager.data.collectorToken, eventData, configManager.data.splunkindexer); 
   }
 }

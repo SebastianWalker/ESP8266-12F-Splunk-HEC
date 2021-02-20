@@ -8,7 +8,7 @@
     },
     {
         "name": "splunkindexer",
-        "label": "Splunk Indexer",
+        "label": "Splunk Indexer (IP:Port)",
         "type": "char",
         "length": 25,
         "value": "192.168.1.121:32773"
@@ -26,5 +26,11 @@
         "type": "char",
         "length": 10,
         "value": "HQ"
+    },
+    {
+        "name": "updateSpeed",
+        "label": "Update (ms)",
+        "type": "uint16_t",
+        "value": 5000
     }
 ]
