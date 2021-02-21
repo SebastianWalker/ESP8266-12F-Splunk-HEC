@@ -24,12 +24,7 @@ int LDRvalue = 0;
 // Stuff for Splunk
 String eventData="";
 
-//you need a different client per board
-String clientName ="HQ";
-String ip = "";
-
-// variables for timing
-//static unsigned long msTickLED = 0;
+// variable for timing
 static unsigned long msTickSplunk = 0;
 
 void splunkpost(String collectorToken,String PostData, String splunkindexer)
@@ -46,8 +41,10 @@ void splunkpost(String collectorToken,String PostData, String splunkindexer)
   http.addHeader("Content-Type", "application/json");
   //Serial.println(tokenValue);
   http.addHeader("Authorization", tokenValue);
+
   Serial.print("splunking: ");
   Serial.print(payload);
+
   String contentlength = String(payload.length());
   http.addHeader("Content-Length", contentlength );
   http.POST(payload);
@@ -146,23 +143,21 @@ void loop()
       }
 
       // Compute heat index in Fahrenheit (the default)
-      float hif = dht.computeHeatIndex(f, h);
+      //float hif = dht.computeHeatIndex(f, h);
       // Compute heat index in Celsius (isFahreheit = false)
       float hic = dht.computeHeatIndex(t, h, false);
 
-      Serial.print(F("Humidity: ")); Serial.print(h);
-      Serial.print(F("%  Temperature: ")); Serial.print(t); Serial.print(F("°C "));
-      Serial.print(f); Serial.print(F("°F  Heat index: ")); Serial.print(hic); Serial.print(F("°C ")); Serial.print(hif); Serial.print(F("°F "));
-      Serial.print(F("Light: ")); Serial.print(LDRvalue); Serial.println(F("i"));
-      Serial.println();
+      // Serial.print(F("Humidity: ")); Serial.print(h);
+      // Serial.print(F("%  Temperature: ")); Serial.print(t); Serial.print(F("°C "));
+      // Serial.print(f); Serial.print(F("°F  Heat index: ")); Serial.print(hic); Serial.print(F("°C ")); Serial.print(hif); Serial.print(F("°F "));
+      // Serial.print(F("Light: ")); Serial.print(LDRvalue); Serial.println(F("i"));
+      // Serial.println();
 
-      // ip = String(WiFi.localIP().toString());
       // SPLUNK NOW
-      // build the event data, telemtry and metrics type of data goes below
-      clientName = configManager.data.clientName;
       eventData = "{ \"host\": \"" + String(configManager.data.clientName) + "\", \"sourcetype\": \"diySensor\", \"index\": \"esp8266hec\", " 
                     "\"fields\" : {"
-                                  "\"IP\" : \"" + String(WiFi.localIP().toString()) + "\" "
+                                  "\"IP\" : \"" + String(WiFi.localIP().toString()) + "\" , "
+                                  "\"interval\" : \"" + String(configManager.data.updateSpeed/1000) + "\" "
                     "}, "
                     "\"event\"  : {"
                                   "\"temp\" : \"" + t + "\" , "
@@ -172,7 +167,6 @@ void loop()
                                   "\"uptime\": \"" + millis()/1000 + "\" "
                     "}"
                   "}";
-
       //send off the data
       splunkpost(configManager.data.collectorToken, eventData, configManager.data.splunkindexer); 
     }

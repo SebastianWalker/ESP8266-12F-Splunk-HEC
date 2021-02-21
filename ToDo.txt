@@ -1,13 +1,18 @@
-* Rangefinder 
+- Rangefinder 
     - add I2C rangefinder to display desk height (sitting/standing...)
 
-* uptime
-    - sent uptime in seconds since controller restart
++ uptime
+    + sent uptime in seconds since controller restart
 
-* send meta data 
+- send meta data 
     - UTC timestamps
-    - IP address
+    + IP address
 
-* temp sensor DS18B20
+- temp sensor DS18B20
 
-* use config settings instead of hard coded stuff
++ use config settings instead of hard coded stuff
+
+- implement reset function in code
+    - log reset event/reason to splunk
+    - reset over web interface button input
+    - reset if DHT11 readings are way off.. 
