@@ -16,3 +16,7 @@
     - log reset event/reason to splunk
     - reset over web interface button input
     - reset if DHT11 readings are way off.. 
+
+- add a PIR to detect motion in my office (am i home or working inmy company office?)
+
+- add more build pictures and schematics

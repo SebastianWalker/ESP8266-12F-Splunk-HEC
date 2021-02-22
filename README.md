@@ -2,16 +2,18 @@
 
 ## The what and why...
 ### General
-This repository is just for me to learn how to use Github.
-This Readme is just my personal note taking on my endeavour to learn. And so i have a place to review how i did this when i'm old.. :D
+* This repository is just for me to learn how to use Github.
+* This Readme is just my personal note taking on my endeavour to learn. And so i have a place to review how i did this when i'm old.. :D
 
 ### Specific
-I have a few ESP8266-12F..
-I always wanted to use them for their wifi cababiliteis... didnt have a project/time so far.
-I am implementing Splunk at work. Learning on the go.. why not play with it at home too..
+* I have a few ESP8266-12F..
+* I always wanted to use them for their wifi cababilities... didnt have a project/time so far.
+* I am implementing Splunk at work. Learning on the go.. why not play with it at home too..
+* I can run splunk in a docker on my QNAP NAS.. 
 
 ### Scope
-Everything i learn / do to get the ESP8266 to talk to Splunk on my NAS.
+* Everything i learn / do to get the ESP8266 to talk to Splunk on my NAS.
+* Let's learn...Splunk, Docker, ESP8266, Markdown, ...
 
 ## Documentation
 * [IoT Framework](https://github.com/maakbaas/esp8266-iot-framework)
@@ -29,8 +31,20 @@ Everything i learn / do to get the ESP8266 to talk to Splunk on my NAS.
 
 ### Splunk and Docker
 * [splunk.pid unreadable](https://community.splunk.com/t5/Security/splunk-starting-as-root-user-how-to-change-this-one/m-p/305432)
+* due to Docker we can not use port 8088 for HEC.. it gets redirected from 32k-something to 8088 on the Docker container
+* Docker (at least my container) runs in UTC. 
+  * Sounds like best practise... but i am not located in UTC. Splunk HEC will use index time for time stamps, since in the HEC payload (eventdata, metadata) there is no timestamp configured. 
+  * Need to figure out how to set the timezone for the source/host/sourcetype of my sensor in props.conf to match my timezone. 
 
 ### IoT Framework 
 * to change the config parameters and rebuild the web pages 
   * NPM needs to be installed 
-  * open the 'ESP8266 IoT Framework' in vscode-terminal and issue a 'npm ci' command
+  * open the `ESP8266 IoT Framework` in vscode-terminal and issue a `npm ci` command
+  * add a .json file with the config parameters `iotFrameworkConfig.json` in the project root (wanted it in 'src' folder.. but that dind work.. maybe the buildflag was set wrong..)
+  * add to platformio.ini: `build_flags = -DCONFIG_PATH=iotFrameworkConfig.json -DREBUILD_HTML -DREBUILD_CONFIG` to trigger the redbuld of the webinterface
+
+### Hardware
+* ESP8266 12F
+* DHT11 (Signal to D4, Resistor from VCC to signal)
+* LED (D8, used for 1s heartbeat)
+* LDR (A0 and VCC, Potentiometer to A0 to adjust the LDR reading)
