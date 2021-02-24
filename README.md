@@ -34,7 +34,7 @@
 * due to Docker we can not use port 8088 for HEC.. it gets redirected from 32k-something to 8088 on the Docker container
 * Docker (at least my container) runs in UTC. 
   * Sounds like best practise... but i am not located in UTC. Splunk HEC will use index time for time stamps, since in the HEC payload (eventdata, metadata) there is no timestamp configured. 
-  * Need to figure out how to set the timezone for the source/host/sourcetype of my sensor in props.conf to match my timezone. 
+  * Need to figure out how to set the timezone for the source/host/sourcetype of my sensor in props.conf to match my timezone (especially how to do it on Docker...)
 
 ### IoT Framework 
 * to change the config parameters and rebuild the web pages 
