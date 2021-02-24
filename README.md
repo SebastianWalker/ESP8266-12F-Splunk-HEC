@@ -39,7 +39,8 @@
 ### IoT Framework 
 * to change the config parameters and rebuild the web pages 
   * NPM needs to be installed 
-    * open the project in `platformio cli terminal` and write `npm install` 
+    * open the project in `platformio cli terminal` and write `npm install`  https://www.npmjs.com/get-npm
+    * ?npm install --save-dev webpack? https://webpack.js.org/guides/installation/
   * open the `ESP8266 IoT Framework` in vscode-terminal (right click the project and choose 'open in terminal') and issue a `npm ci` command
   * add a .json file with the config parameters `iotFrameworkConfig.json` in the project root (wanted it in 'src' folder.. but that dind work.. maybe the buildflag was set wrong..)
   * add to platformio.ini: `build_flags = -DCONFIG_PATH=iotFrameworkConfig.json -DREBUILD_HTML -DREBUILD_CONFIG` to trigger the redbuild of the webinterface
