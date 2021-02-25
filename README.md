@@ -38,11 +38,13 @@
 
 ### IoT Framework 
 * to change the config parameters and rebuild the web pages 
-  * NPM needs to be installed (i guess u need to install node.js frist)
-    * open the project in `platformio cli terminal` and write `npm init` https://stackoverflow.com/questions/50895493/solving-the-npm-warn-saveerror-enoent-no-such-file-or-directory-open-users
-    * use npm init -y to not be asked for any details
-    * * `npm install`  https://www.npmjs.com/get-npm
-    * ?npm install --save-dev webpack? https://webpack.js.org/guides/installation/
+  * NPM needs to be installed (i guess u need to install NPM / node.js frist) this link https://www.npmjs.com/get-npm
+   * open the ESP8266 IoT Framework lib folder (.pio/lipdeps/ESP8266 IoT Framework -> right click `open in integrated Terminal`) with vscode-terminal ()
+   * in the new terminal window type `npm ci`
+    * ~~open the project in `platformio cli terminal` and write `npm init` https://stackoverflow.com/questions/50895493/solving-the-npm-warn-saveerror-enoent-no-such-file-or-directory-open-users~~
+    * ~~use npm init -y to not be asked for any details~~
+    * ~~`npm install`  https://www.npmjs.com/get-npm~~
+    * ~~?npm install --save-dev webpack? https://webpack.js.org/guides/installation/~~
   * open the `ESP8266 IoT Framework` in vscode-terminal (right click the project and choose 'open in terminal') and issue a `npm ci` command
   * add a .json file with the config parameters `iotFrameworkConfig.json` in the project root (wanted it in 'src' folder.. but that dind work.. maybe the buildflag was set wrong..)
   * add to platformio.ini: `build_flags = -DCONFIG_PATH=iotFrameworkConfig.json -DREBUILD_HTML -DREBUILD_CONFIG` to trigger the redbuild of the webinterface
