@@ -3,7 +3,7 @@
 ## The what and why...
 ### General
 * This repository is just for me to learn how to use Github.
-* This Readme is just my personal note taking on my endeavour to learn. And so i have a place to review how i did this when i'm old.. :D
+* This readme is just my personal note taking on my endeavour to learn. And so i have a place to review how i did this when i'm old.. :D
 
 ### Specific
 * I have a few ESP8266-12F..
@@ -16,7 +16,7 @@
 * Let's learn...Splunk, Docker, ESP8266, Markdown, ...
 
 ## Documentation
-* [IoT Framework](https://github.com/maakbaas/esp8266-iot-framework)
+* [ESP8266 IoT Framework](https://github.com/maakbaas/esp8266-iot-framework)
 * [QNAP Docker Splunk](https://docs.google.com/document/d/1_8vvd1eB1JU5wbU0zWW05CGtKhPdAXr0pFtFbg6_nl4/edit#heading=h.c8ma5kq9d3ms)
   * SPLUNK_START_ARGS	--accept-license --name splunk
   * Docker is running in NAT mode.. that will change all port redirects on restart.. need to adjust the splunk-indexer port in ESP8266 every time
@@ -39,19 +39,25 @@
 
 ### IoT Framework 
 * to change the config parameters and rebuild the web pages 
-  * NPM needs to be installed (i guess u need to install NPM / node.js frist) this link https://www.npmjs.com/get-npm
-   * open the ESP8266 IoT Framework lib folder (.pio/lipdeps/ESP8266 IoT Framework -> right click `open in integrated Terminal`) with vscode-terminal ()
+  * NPM needs to be installed (i guess u need to [install NPM](https://www.npmjs.com/get-npm) / node.js frist)
+   * open the `ESP8266 IoT Framework lib folder` (.pio/lipdeps/ESP8266 IoT Framework -> right click `open in integrated Terminal`) with vscode-terminal ()
    * in the new terminal window type `npm ci`
-    * ~~open the project in `platformio cli terminal` and write `npm init` https://stackoverflow.com/questions/50895493/solving-the-npm-warn-saveerror-enoent-no-such-file-or-directory-open-users~~
+    * ~~open the project in `platformio cli terminal` and write `npm init` [Link](https://stackoverflow.com/questions/50895493/solving-the-npm-warn-saveerror-enoent-no-such-file-or-directory-open-users)~~
     * ~~use npm init -y to not be asked for any details~~
-    * ~~`npm install`  https://www.npmjs.com/get-npm~~
-    * ~~?npm install --save-dev webpack? https://webpack.js.org/guides/installation/~~
-  * open the `ESP8266 IoT Framework` in vscode-terminal (right click the project and choose 'open in terminal') and issue a `npm ci` command
+    * ~~`npm install`  [install NPM](https://www.npmjs.com/get-npm)~~
+    * ~~?npm install --save-dev webpack? [Link](https://webpack.js.org/guides/installation/)~~
   * add a .json file with the config parameters `iotFrameworkConfig.json` in the project root (wanted it in 'src' folder.. but that dind work.. maybe the buildflag was set wrong..)
   * add to platformio.ini: `build_flags = -DCONFIG_PATH=iotFrameworkConfig.json -DREBUILD_HTML -DREBUILD_CONFIG` to trigger the redbuild of the webinterface
 
 ### Hardware
 * ESP8266 12F
-* DHT11 (Signal to D4, Resistor from VCC to signal)
+* ~~DHT11 (Signal to D4, Resistor from VCC to signal)~~ 
+* BME280 on I2C
 * LED (D8, used for 1s heartbeat)
 * LDR (A0 and VCC, Potentiometer to A0 to adjust the LDR reading)
+
+### Problems
+#### ESP8266 IoT Framework 
+* After first changing the config parameters i struggeled to get it working for a 2nd project. But that was a case of RTFM. I tried to install npm and all that stuff in the project folder and not in the ESP8266 IoT Framework library folder. Anyways it is expalined in the manual.. just gotta read it..
+#### DHT11
+* This sensor (maybe just mine) is totally unrelaiable. Sometimes after restart it just reported numbers so far off the scale.. 150% humidity, -12°C temperature.. or returning NaN then a normal reading then off scale reading and so on...

@@ -21,7 +21,7 @@
 
 // Stuff for the DHT sensor
   #include "DHT.h"
-  #define DHTPIN 2 
+  #define DHTPIN 14 
   #define DHTTYPE DHT11  
   DHT dht(DHTPIN, DHTTYPE);
 
