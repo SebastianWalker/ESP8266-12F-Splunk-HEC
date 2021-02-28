@@ -1,5 +1,5 @@
-- Rangefinder 
-    - add I2C rangefinder to display desk height (sitting/standing...)
++ Rangefinder 
+    + add I2C rangefinder to display desk height (sitting/standing...) --> implementet in another [ESP8266 Sensor](https://github.com/SebastianWalker/ESP8266-D1-mini-SPLUNK-HEC)
 
 + uptime
     + sent uptime in seconds since controller restart
