@@ -10,6 +10,7 @@
 * I always wanted to use them for their wifi cababilities... didnt have a project/time so far.
 * I am implementing Splunk at work. Learning on the go.. why not play with it at home too..
 * I can run splunk in a docker on my QNAP NAS.. 
+* I want to use Visual-Studio-Code and the PlatformIO plugin.
 
 ### Scope
 * Everything i learn / do to get the ESP8266 to talk to Splunk on my NAS.
@@ -29,6 +30,7 @@
 ### ressources to read and better understand stuff
 * [Splunk HEC Explained](https://medium.com/adarma-tech-blog/splunk-http-event-collectors-explained-2c22e87ab8d2)
 * [ESP8266 Pinouts](https://randomnerdtutorials.com/esp8266-pinout-reference-gpios/)
+* [Adafruit BME280 Documentation](https://learn.adafruit.com/adafruit-bme280-humidity-barometric-pressure-temperature-sensor-breakout/downloads)
 
 ### Splunk and Docker
 * [splunk.pid unreadable](https://community.splunk.com/t5/Security/splunk-starting-as-root-user-how-to-change-this-one/m-p/305432)
