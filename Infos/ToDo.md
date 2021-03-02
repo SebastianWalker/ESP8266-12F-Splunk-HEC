@@ -20,3 +20,7 @@
 - add a PIR to detect motion in my office (am i home or working inmy company office?)
 
 - add more build pictures and schematics
+
+- add averaging to the distance sensor to avoid false readings (spikes...)
+
+- add feedback leds to show connection status and/or http response code
