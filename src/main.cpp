@@ -66,8 +66,9 @@ void setup()
     configManager.begin();
     WiFiManager.begin(configManager.data.projectName);
 
-    //Set the timezone to UTC
-    timeSync.begin();
+    //Set the timezone
+    timeSync.begin(configManager.data.sensorTimezone);
+
 
     //Wait for connection
     timeSync.waitForSyncResult(10000);
@@ -75,8 +76,22 @@ void setup()
     if (timeSync.isSynced())
     {
         time_t now = time(nullptr);
-        Serial.print(PSTR("Current UTC: "));
+        Serial.print(PSTR("Current local time: "));
         Serial.print(asctime(localtime(&now)));
+        Serial.print(" - UTC: ");
+        Serial.print(asctime(gmtime(&now)));
+
+        struct tm * timeinfo;
+        char timeStringBuff[50]; //50 chars should be enough
+        
+        time (&now);
+        timeinfo = localtime(&now);
+        
+        strftime(timeStringBuff, sizeof(timeStringBuff), "%Y.%m.%d %H:%M:%S", timeinfo);
+        //print like "const char*"
+        Serial.println(timeStringBuff);
+
+
     }
     else 
     {
@@ -124,8 +139,20 @@ void loop()
 
       // Wait and print the time
       time_t now = time(nullptr);
-      Serial.print(PSTR("Current UTC: "));
+      Serial.print(PSTR("Current local time: "));
       Serial.print(asctime(localtime(&now)));   
+      Serial.print(" - UTC: ");
+      Serial.println(asctime(gmtime(&now)));
+
+              struct tm * timeinfo;
+              char timeStringBuff[50]; //50 chars should be enough
+              
+              time (&now);
+              timeinfo = localtime(&now);
+              
+              strftime(timeStringBuff, sizeof(timeStringBuff), "%Y.%m.%d %H:%M:%S", timeinfo);
+              //print like "const char*"
+              Serial.println(timeStringBuff);
 
       // Read the light intensity
       LDRvalue=0; // reset

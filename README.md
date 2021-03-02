@@ -31,6 +31,8 @@
 * [Splunk HEC Explained](https://medium.com/adarma-tech-blog/splunk-http-event-collectors-explained-2c22e87ab8d2)
 * [ESP8266 Pinouts](https://randomnerdtutorials.com/esp8266-pinout-reference-gpios/)
 * [Adafruit BME280 Documentation](https://learn.adafruit.com/adafruit-bme280-humidity-barometric-pressure-temperature-sensor-breakout/downloads)
+* [Format time with strftime c++](http://www.cplusplus.com/reference/ctime/strftime/)
+* [TimeZone inputs for ConfigManager](https://github.com/esp8266/Arduino/blob/master/cores/esp8266/TZ.h) -> use the string between `PSTR("` and `")` without the double qoutes e.g. CET-1CEST,M3.5.0,M10.5.0/3
 
 ### Splunk and Docker
 * [splunk.pid unreadable](https://community.splunk.com/t5/Security/splunk-starting-as-root-user-how-to-change-this-one/m-p/305432)
