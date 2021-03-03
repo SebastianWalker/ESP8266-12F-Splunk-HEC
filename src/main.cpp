@@ -24,6 +24,12 @@
 #define LDR A0
 int LDRvalue = 0;
 
+// PIR input
+#define PIR D4  // input pin
+static unsigned long pirTrippedTime = 0 ; // last time in millis() the PIR got tripped by motion
+boolean pirTripped = false; // is motion detected? true/false
+
+
 // Stuff for Splunk
 String eventData="";
 
@@ -56,6 +62,16 @@ void splunkpost(String collectorToken,String PostData, String splunkindexer)
   http.end();
 }
 
+
+void checkPir(){ 
+  // function need to get smarter
+  // see the transition from HIGH/LOW LOW/HIGH
+  // get the time in UTC instead of millis()
+  // if hte splunk send intervall is high.. this only sends the state just before the measurement..
+  // if intervall = 10m and PIR is triggered @2m but then nothong anymore.. we would report nothing..
+  pirTripped = digitalRead(PIR);
+  if (pirTripped) pirTrippedTime = millis();
+}
 
 void setup()
 {
@@ -101,6 +117,7 @@ void setup()
     pinMode(D8, OUTPUT);
     digitalWrite(D8, HIGH);
     pinMode(LDR, INPUT);
+    pinMode(PIR, INPUT);
 
 
     // BME280
@@ -144,6 +161,7 @@ void loop()
       Serial.print(" - UTC: ");
       Serial.println(asctime(gmtime(&now)));
 
+      // getting the time as printout to send t to splunk for maybe indexing 
               struct tm * timeinfo;
               char timeStringBuff[50]; //50 chars should be enough
               
@@ -162,6 +180,9 @@ void loop()
       }
       LDRvalue = map(LDRvalue / 4, 0,1024,0,100);
       
+      // PIR
+      // maybe put it outside the loop and trigger splunking it on change
+      checkPir();
 
     // BME280
       sensors_event_t temp_event, pressure_event, humidity_event;
@@ -180,6 +201,7 @@ void loop()
                                   "\"interval\" : \"" + String(configManager.data.updateSpeed/1000) + "\" "
                     "}, "
                     "\"event\"  : {"
+                                  "\"PIR_State\": \"" + pirTripped + "\" , "
                                   "\"lightIndex\": \"" + LDRvalue + "\" , "
                                   "\"BME280_Temp\": \"" + temp_event.temperature + "\" , "
                                   "\"BME280_Pressure\": \"" + pressure_event.pressure + "\" , "

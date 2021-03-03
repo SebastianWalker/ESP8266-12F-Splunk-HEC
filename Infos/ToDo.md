@@ -24,5 +24,7 @@
 - add averaging to the distance sensor to avoid false readings (spikes...)
 
 - add feedback leds to show connection status and/or http response code
+    - what if NTP sync fails.. led indicator pls.. handle error.. also jsut not report times in HEC
 
 - timezone change with configmanager is used in setup... right now it needs a restart to take affect...
+    - store the value in a string and compare it in the loop.. if it did change.. resync time..?
