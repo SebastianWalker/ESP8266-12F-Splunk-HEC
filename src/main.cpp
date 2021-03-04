@@ -32,21 +32,66 @@ boolean pirTripped = false; // is motion detected? true/false
 
 // Stuff for Splunk
 String eventData="";
+String myEventData="";
+String hecMessage="";
 
 // variable for timing
 static unsigned long msTickSplunk = 0;
 
+String getLocaltime(){
+  // getting the time as printout to send t to splunk for maybe indexing 
+  time_t now = time(nullptr);
+  struct tm * timeinfo;
+  char timeStringBuff[50]; //50 chars should be enough
+    
+  time (&now);
+  timeinfo = localtime(&now);
+    
+  strftime(timeStringBuff, sizeof(timeStringBuff), "%Y.%m.%d %H:%M:%S", timeinfo);
+  //print like "const char*"
+  //Serial.println(timeStringBuff);
+  return timeStringBuff;
+}
+String getUTC(){
+  // getting the time as printout to send t to splunk for maybe indexing 
+  time_t now = time(nullptr);
+  struct tm * timeinfo;
+  char timeStringBuff[50]; //50 chars should be enough
+    
+  time (&now);
+  timeinfo = gmtime(&now);
+    
+  strftime(timeStringBuff, sizeof(timeStringBuff), "%Y.%m.%d %H:%M:%S", timeinfo);
+  //print like "const char*"
+  //Serial.println(timeStringBuff);
+  return timeStringBuff;
+}
+
 void splunkpost(String collectorToken,String PostData, String splunkindexer)
 {
-  String payload = PostData;
+  hecMessage = "{ \"host\": \"" + String(configManager.data.clientName) + "\", " 
+                 "\"sourcetype\": \"" + configManager.data.sourcetype + "\", " 
+                 "\"index\": \"" + configManager.data.index + "\", " 
+                 "\"fields\" : {"
+                                "\"IP\" : \"" + String(WiFi.localIP().toString()) + "\" , "
+                                "\"UTC\" : \"" + String(getUTC()) + "\" , "
+                                "\"Localtime\" : \"" + String(getLocaltime()) + "\" , "
+                                "\"interval\" : \"" + String(configManager.data.updateSpeed/1000) + "\" "
+                  "}, "
+                  "\"event\"  : {" + PostData + "}"
+               "}";
+  
+  
+  String payload = hecMessage;
 
   //Build the request
+  WiFiClient client; // just to avoid deprecation error on http.begin(url)
   HTTPClient http;
   String splunkurl="http://"+ splunkindexer +"/services/collector"; //removed :8088 due to DOCKER container port redirect.. port now lives in the splunkindexer variable
   String tokenValue="Splunk " + collectorToken;
   
   // fire at will!! 
-  http.begin(splunkurl);
+  http.begin(client, splunkurl); // changed for deprected http.begin(url)
   http.addHeader("Content-Type", "application/json");
   //Serial.println(tokenValue);
   http.addHeader("Authorization", tokenValue);
@@ -107,7 +152,6 @@ void setup()
     //print like "const char*"
     Serial.println(timeStringBuff);
 
-
   }
   else 
   {
@@ -133,12 +177,15 @@ void setup()
 
 
   // sending restart event to splunk
-  eventData = "{"
-              "\"host\": \"" + String(configManager.data.clientName) + "\", \"sourcetype\": \"diySensor\", \"index\": \"esp8266hec\", " 
-              "\"fields\" : {\"IP\" : \"" + String(WiFi.localIP().toString()) + "\" }, "
-              "\"event\"  : {\"status\" : \"" + "restarted" + "\"}"
-              "}";
-  splunkpost(configManager.data.collectorToken, eventData, configManager.data.splunkindexer); 
+  // eventData = "{"
+  //             "\"host\": \"" + String(configManager.data.clientName) + "\", \"sourcetype\": \"diySensor\", \"index\": \"esp8266hec\", " 
+  //             "\"fields\" : {\"IP\" : \"" + String(WiFi.localIP().toString()) + "\" }, "
+  //             "\"event\"  : {\"status\" : \"" + "restarted" + "\"}"
+  //             "}";
+
+  myEventData = "\"status\" : \"" + String("restarted") + "\"";
+
+  splunkpost(configManager.data.collectorToken, myEventData, configManager.data.splunkindexer); 
   Serial.println(eventData);
 
 }
@@ -163,15 +210,15 @@ void loop()
     Serial.println(asctime(gmtime(&now)));
 
     // getting the time as printout to send t to splunk for maybe indexing 
-            struct tm * timeinfo;
-            char timeStringBuff[50]; //50 chars should be enough
+            // struct tm * timeinfo;
+            // char timeStringBuff[50]; //50 chars should be enough
              
-            time (&now);
-            timeinfo = localtime(&now);
+            // time (&now);
+            // timeinfo = localtime(&now);
               
-            strftime(timeStringBuff, sizeof(timeStringBuff), "%Y.%m.%d %H:%M:%S", timeinfo);
-            //print like "const char*"
-            Serial.println(timeStringBuff);
+            // strftime(timeStringBuff, sizeof(timeStringBuff), "%Y.%m.%d %H:%M:%S", timeinfo);
+            // //print like "const char*"
+            // Serial.println(timeStringBuff);
 
     // Read the light intensity
     LDRvalue=0; // reset
@@ -196,21 +243,30 @@ void loop()
     // BME280 END
 
     // SPLUNK NOW
-    eventData = "{ \"host\": \"" + String(configManager.data.clientName) + "\", \"sourcetype\": \"diySensor\", \"index\": \"esp8266hec\", " 
-                  "\"fields\" : {"
-                                "\"IP\" : \"" + String(WiFi.localIP().toString()) + "\" , "
-                                "\"interval\" : \"" + String(configManager.data.updateSpeed/1000) + "\" "
-                  "}, "
-                  "\"event\"  : {"
-                                "\"PIR_State\": \"" + pirTripped + "\" , "
-                                "\"lightIndex\": \"" + LDRvalue + "\" , "
-                                "\"BME280_Temp\": \"" + temp_event.temperature + "\" , "
-                                "\"BME280_Pressure\": \"" + pressure_event.pressure + "\" , "
-                                "\"BME280_Humidity\": \"" + humidity_event.relative_humidity + "\" , "
-                                "\"uptime\": \"" + millis()/1000 + "\" "
-                  "}"
-                "}";
+    // eventData = "{ \"host\": \"" + String(configManager.data.clientName) + "\", \"sourcetype\": \"diySensor\", \"index\": \"esp8266hec\", " 
+    //               "\"fields\" : {"
+    //                             "\"IP\" : \"" + String(WiFi.localIP().toString()) + "\" , "
+    //                             "\"interval\" : \"" + String(configManager.data.updateSpeed/1000) + "\" "
+    //               "}, "
+    //               "\"event\"  : {"
+    //                             "\"PIR_State\": \"" + String(pirTripped) + "\" , "
+    //                             "\"lightIndex\": \"" + String(LDRvalue) + "\" , "
+    //                             "\"BME280_Temp\": \"" + String(temp_event.temperature) + "\" , "
+    //                             "\"BME280_Pressure\": \"" + String(pressure_event.pressure) + "\" , "
+    //                             "\"BME280_Humidity\": \"" + String(humidity_event.relative_humidity) + "\" , "
+    //                             "\"uptime\": \"" + String(millis()/1000) + "\" "
+    //               "}"
+    //             "}";
+
+    myEventData =   "\"PIR_State\": \"" + String(pirTripped) + "\" , "
+                    "\"lightIndex\": \"" + String(LDRvalue) + "\" , "
+                    "\"BME280_Temp\": \"" + String(temp_event.temperature) + "\" , "
+                    "\"BME280_Pressure\": \"" + String(pressure_event.pressure) + "\" , "
+                    "\"BME280_Humidity\": \"" + String(humidity_event.relative_humidity) + "\" , "
+                    "\"uptime\": \"" + String(millis()/1000) + "\" ";
+
     //send off the data
-    splunkpost(configManager.data.collectorToken, eventData, configManager.data.splunkindexer); 
+    splunkpost(configManager.data.collectorToken, myEventData, configManager.data.splunkindexer);
   }
+
 }

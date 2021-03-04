@@ -14,6 +14,20 @@
         "value": "192.168.1.121:32773"
     },
     {
+        "name": "index",
+        "label": "Splunk Index Name",
+        "type": "char",
+        "length": 40,
+        "value": "esp8266hec"
+    },
+    {
+        "name": "sourcetype",
+        "label": "Splunk Sourcetype",
+        "type": "char",
+        "length": 40,
+        "value": "diySensor"
+    },
+    {
         "name": "collectorToken",
         "label": "HEC Token",
         "type": "char",

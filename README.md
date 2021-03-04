@@ -65,3 +65,7 @@
 * After first changing the config parameters i struggeled to get it working for a 2nd project. But that was a case of RTFM. I tried to install npm and all that stuff in the project folder and not in the ESP8266 IoT Framework library folder. Anyways it is expalined in the manual.. just gotta read it..
 #### DHT11
 * This sensor (maybe just mine) is totally unrelaiable. Sometimes after restart it just reported numbers so far off the scale.. 150% humidity, -12°C temperature.. or returning NaN then a normal reading then off scale reading and so on...
+#### Timezone and Docker
+* The Docker container with splunk is running in UTC. And no matter what i set as my Timezone in Splunk web UI.. i only get my charts reporting in UTC. 
+* Tried to set the TZ attribute in props.conf. No luck. Not for source, sourcetype or host.
+* Well.. just giving up on Docker running Splunk on my NAS.. Getting Splunk on a dedicated machine and see how that works out.
