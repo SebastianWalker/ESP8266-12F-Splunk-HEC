@@ -66,7 +66,12 @@ String getUTC(){
   //Serial.println(timeStringBuff);
   return timeStringBuff;
 }
-
+long getEpoch(){
+  // getting the time as printout to send t to splunk for maybe indexing 
+  time_t now = time(nullptr);
+  
+  return now;
+}
 void splunkpost(String collectorToken,String PostData, String splunkindexer)
 {
   hecMessage = "{ \"host\": \"" + String(configManager.data.clientName) + "\", " 
@@ -76,6 +81,7 @@ void splunkpost(String collectorToken,String PostData, String splunkindexer)
                                 "\"IP\" : \"" + String(WiFi.localIP().toString()) + "\" , "
                                 "\"UTC\" : \"" + String(getUTC()) + "\" , "
                                 "\"Localtime\" : \"" + String(getLocaltime()) + "\" , "
+                                "\"time\" : \"" + String(getEpoch()) + "\" , "
                                 "\"interval\" : \"" + String(configManager.data.updateSpeed/1000) + "\" "
                   "}, "
                   "\"event\"  : {" + PostData + "}"
