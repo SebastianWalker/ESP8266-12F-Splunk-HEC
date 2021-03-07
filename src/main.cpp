@@ -11,16 +11,16 @@
 #include <TZ.h>
 #include "ESP8266HTTPClient.h"
 
-// for the I2C sensors
+// I2C sensors
 #include <Wire.h>  
-// Stuff for BME280 
+// BME280 
 #include <Adafruit_BME280.h>
 boolean bmeErr = true; // set to false once wire.begin is successfull 
 Adafruit_BME280 bme; // use I2C interface
 Adafruit_Sensor *bme_temp = bme.getTemperatureSensor();
 Adafruit_Sensor *bme_pressure = bme.getPressureSensor();
 Adafruit_Sensor *bme_humidity = bme.getHumiditySensor();
-// Stuff for MAX44009
+// MAX44009
 #include <Max44009.h>
 Max44009 luxSensor(0x4A);
 boolean luxErr = true; // set to false once connected in setup()
@@ -48,41 +48,54 @@ String hecMessage="";
 // variable for timing
 static unsigned long msTickSplunk = 0;
 
+/*
+ * Returns a string of Localtime
+ * in format "%Y-%m-%d %H:%M:%S"
+ */
 String getLocaltime(){
-  // getting the time as printout to send t to splunk for maybe indexing 
   time_t now = time(nullptr);
   struct tm * timeinfo;
-  char timeStringBuff[50]; //50 chars should be enough
+  char timeStringBuff[20];
     
   time (&now);
   timeinfo = localtime(&now);
     
   strftime(timeStringBuff, sizeof(timeStringBuff), "%Y-%m-%d %H:%M:%S", timeinfo);
-  //print like "const char*"
-  //Serial.println(timeStringBuff);
   return timeStringBuff;
 }
+
+/*
+ * Returns a string of time in UTC
+ * in format "%Y-%m-%d %H:%M:%S"
+ */
 String getUTC(){
-  // getting the time as printout to send t to splunk for maybe indexing 
   time_t now = time(nullptr);
   struct tm * timeinfo;
-  char timeStringBuff[50]; //50 chars should be enough
+  char timeStringBuff[20];
     
   time (&now);
   timeinfo = gmtime(&now);
     
   strftime(timeStringBuff, sizeof(timeStringBuff), "%Y-%m-%d %H:%M:%S", timeinfo);
-  //print like "const char*"
-  //Serial.println(timeStringBuff);
   return timeStringBuff;
 }
+
+/*
+ * Returns epoch time as long
+ */
 long getEpoch(){
-  // getting the time as printout to send t to splunk for maybe indexing 
   time_t now = time(nullptr);
-  
   return now;
 }
 
+
+/*
+ * Post event data to splunk http event collector
+ * 
+ * PostData: 
+ * a string of json formatted key:value pairs 
+ * just everything between the curly braces of the event node
+ */
 void splunkpost(String PostData){
   hecMessage = "{ \"host\": \"" + String(configManager.data.clientName) + "\", " 
                  "\"sourcetype\": \"" + String(configManager.data.sourcetype) + "\", " 
@@ -129,7 +142,7 @@ void checkPir(){
   // function need to get smarter
   // see the transition from HIGH/LOW LOW/HIGH
   // get the time in UTC instead of millis()
-  // if hte splunk send intervall is high.. this only sends the state just before the measurement..
+  // if the splunk send intervall is high.. this only sends the state just before the measurement..
   // if intervall = 10m and PIR is triggered @2m but then nothing anymore.. we would report nothing..
   pirTripped = digitalRead(PIR);
   digitalWrite(PIR_LED, pirTripped);
@@ -138,6 +151,11 @@ void checkPir(){
 
 // Software restart 
 void(* resetFunc) (void) = 0; //declare reset function @ address 0
+/*
+ * Triggers a software restart
+ * resets the flag in config manager
+ * send INFO msg to splunk
+ */
 void forceRestart(){
   // save false to config data.. else it would keep restarting...
   configManager.data.forceRestart = false;
@@ -165,26 +183,13 @@ void setup()
   if (timeSync.isSynced())
   {
     time_t now = time(nullptr);
-    Serial.print(PSTR("Current local time: "));
-    Serial.print(asctime(localtime(&now)));
-    Serial.print(" - UTC: ");
-    Serial.print(asctime(gmtime(&now)));
-
-    struct tm * timeinfo;
-    char timeStringBuff[50]; //50 chars should be enough
-        
-    time (&now);
-    timeinfo = localtime(&now);
-        
-    strftime(timeStringBuff, sizeof(timeStringBuff), "%Y.%m.%d %H:%M:%S", timeinfo);
-    //print like "const char*"
-    Serial.println(timeStringBuff);
-
+    Serial.print(PSTR("Local time: ")); Serial.println(asctime(localtime(&now)));
+    Serial.print(PSTR("UTC: ")); Serial.println(asctime(gmtime(&now)));
   }
   else 
   {
-    //Serial.println("Timeout while receiving the time");
     splunkpost("\"status\" : \"ERROR\", \"msg\" : \"No time sync available.\""); 
+    // set an error LED high..
   }
 
   // set input/output pins
@@ -203,8 +208,7 @@ void setup()
     // set an error LED high.. 
   }
   else{
-    bmeErr = false;
-    //bme_temp->printSensorDetails(); bme_pressure->printSensorDetails(); bme_humidity->printSensorDetails();   
+    bmeErr = false; 
   }
   // BME280 END
 
@@ -255,10 +259,12 @@ void loop()
     if (pirTrippedTime >= msTickSplunk-configManager.data.updateSpeed){pirTripped = 1;}
 
     // BME280
-    sensors_event_t temp_event, pressure_event, humidity_event;
-    bme_temp->getEvent(&temp_event);
-    bme_pressure->getEvent(&pressure_event);
-    bme_humidity->getEvent(&humidity_event);
+    if(!bmeErr){
+      sensors_event_t temp_event, pressure_event, humidity_event;
+      bme_temp->getEvent(&temp_event);
+      bme_pressure->getEvent(&pressure_event);
+      bme_humidity->getEvent(&humidity_event);
+    }
     // BME280 END
 
     // only report these sensors if they are up and running...
@@ -269,11 +275,7 @@ void loop()
     String MAX44009_data = luxErr ? "" :  "\"MAX44009_lux\": \"" + String(luxSensor.getLux()) + "\" , "
                                           "\"MAX44009_IntegrationTime\": \"" + String(luxSensor.getIntegrationTime()/1000.0) + "\" , ";
 
-    //"\"BME280_Temp\": \"" + String(temp_event.temperature) + "\" , "
-    // "\"BME280_Pressure\": \"" + String(pressure_event.pressure) + "\" , "
-    // "\"BME280_Humidity\": \"" + String(humidity_event.relative_humidity) + "\" , "
-    // "\"MAX44009_lux\": \"" + String(luxSensor.getLux()) + "\" , "
-    // "\"MAX44009_IntegrationTime\": \"" + String(luxSensor.getIntegrationTime()/1000.0) + "\" , "
+    // build the event data string
     eventData =   "\"PIR_State\": \"" + String(pirTripped) + "\" , "
                   "\"lightIndex\": \"" + String(LDRvalue) + "\" , "
                   + BME280_data 
