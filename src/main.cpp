@@ -11,28 +11,38 @@
 #include <TZ.h>
 #include "ESP8266HTTPClient.h"
 
-// Stuff for BME280 
+// for the I2C sensors
 #include <Wire.h>  
+// Stuff for BME280 
 #include <Adafruit_BME280.h>
+boolean bmeErr = true; // set to false once wire.begin is successfull 
 Adafruit_BME280 bme; // use I2C interface
 Adafruit_Sensor *bme_temp = bme.getTemperatureSensor();
 Adafruit_Sensor *bme_pressure = bme.getPressureSensor();
 Adafruit_Sensor *bme_humidity = bme.getHumiditySensor();
-
+// Stuff for MAX44009
+#include <Max44009.h>
+Max44009 luxSensor(0x4A);
+boolean luxErr = true; // set to false once connected in setup()
 
 // LDR input pin (ESP8266 only got one ADC on A0)
 #define LDR A0
 int LDRvalue = 0;
 
-// PIR input
+// HC-SR501 PIR
 #define PIR D4  // input pin
+#define PIR_LED D5 // output pin for PIR active
 static unsigned long pirTrippedTime = 0 ; // last time in millis() the PIR got tripped by motion
 boolean pirTripped = false; // is motion detected? true/false
 
+// HC-SR04 ultra sonic distance sensor
+#include <Ultrasonic.h>
+#define HCSR04_ECHO D6
+#define HCSR04_TRIG D7
+Ultrasonic HCSR04(HCSR04_TRIG, HCSR04_ECHO);
 
 // Stuff for Splunk
 String eventData="";
-String myEventData="";
 String hecMessage="";
 
 // variable for timing
@@ -47,7 +57,7 @@ String getLocaltime(){
   time (&now);
   timeinfo = localtime(&now);
     
-  strftime(timeStringBuff, sizeof(timeStringBuff), "%Y.%m.%d %H:%M:%S", timeinfo);
+  strftime(timeStringBuff, sizeof(timeStringBuff), "%Y-%m-%d %H:%M:%S", timeinfo);
   //print like "const char*"
   //Serial.println(timeStringBuff);
   return timeStringBuff;
@@ -61,7 +71,7 @@ String getUTC(){
   time (&now);
   timeinfo = gmtime(&now);
     
-  strftime(timeStringBuff, sizeof(timeStringBuff), "%Y.%m.%d %H:%M:%S", timeinfo);
+  strftime(timeStringBuff, sizeof(timeStringBuff), "%Y-%m-%d %H:%M:%S", timeinfo);
   //print like "const char*"
   //Serial.println(timeStringBuff);
   return timeStringBuff;
@@ -72,16 +82,16 @@ long getEpoch(){
   
   return now;
 }
-void splunkpost(String collectorToken,String PostData, String splunkindexer)
-{
+
+void splunkpost(String PostData){
   hecMessage = "{ \"host\": \"" + String(configManager.data.clientName) + "\", " 
-                 "\"sourcetype\": \"" + configManager.data.sourcetype + "\", " 
-                 "\"index\": \"" + configManager.data.index + "\", " 
+                 "\"sourcetype\": \"" + String(configManager.data.sourcetype) + "\", " 
+                 "\"index\": \"" + String(configManager.data.index) + "\", " 
+                 "\"time\" : \"" + String(getEpoch()) + "\" , "
                  "\"fields\" : {"
                                 "\"IP\" : \"" + String(WiFi.localIP().toString()) + "\" , "
                                 "\"UTC\" : \"" + String(getUTC()) + "\" , "
                                 "\"Localtime\" : \"" + String(getLocaltime()) + "\" , "
-                                "\"time\" : \"" + String(getEpoch()) + "\" , "
                                 "\"interval\" : \"" + String(configManager.data.updateSpeed/1000) + "\" "
                   "}, "
                   "\"event\"  : {" + PostData + "}"
@@ -93,11 +103,12 @@ void splunkpost(String collectorToken,String PostData, String splunkindexer)
   //Build the request
   WiFiClient client; // just to avoid deprecation error on http.begin(url)
   HTTPClient http;
-  String splunkurl="http://"+ splunkindexer +"/services/collector"; //removed :8088 due to DOCKER container port redirect.. port now lives in the splunkindexer variable
-  String tokenValue="Splunk " + collectorToken;
+  String splunkurl="http://"+ String(configManager.data.splunkindexer) +"/services/collector"; //removed :8088 due to DOCKER container port redirect.. port now lives in the splunkindexer variable
+  String tokenValue="Splunk " + String(configManager.data.collectorToken);
   
   // fire at will!! 
   http.begin(client, splunkurl); // changed for deprected http.begin(url)
+  //http.begin(splunkurl);
   http.addHeader("Content-Type", "application/json");
   //Serial.println(tokenValue);
   http.addHeader("Authorization", tokenValue);
@@ -119,9 +130,20 @@ void checkPir(){
   // see the transition from HIGH/LOW LOW/HIGH
   // get the time in UTC instead of millis()
   // if hte splunk send intervall is high.. this only sends the state just before the measurement..
-  // if intervall = 10m and PIR is triggered @2m but then nothong anymore.. we would report nothing..
+  // if intervall = 10m and PIR is triggered @2m but then nothing anymore.. we would report nothing..
   pirTripped = digitalRead(PIR);
+  digitalWrite(PIR_LED, pirTripped);
   if (pirTripped) pirTrippedTime = millis();
+}
+
+// Software restart 
+void(* resetFunc) (void) = 0; //declare reset function @ address 0
+void forceRestart(){
+  // save false to config data.. else it would keep restarting...
+  configManager.data.forceRestart = false;
+  configManager.save();
+  splunkpost("\"status\" : \"INFO\", \"msg\" : \"Executing Order 66\""); 
+  resetFunc();
 }
 
 void setup()
@@ -161,39 +183,42 @@ void setup()
   }
   else 
   {
-    Serial.println("Timeout while receiving the time");
+    //Serial.println("Timeout while receiving the time");
+    splunkpost("\"status\" : \"ERROR\", \"msg\" : \"No time sync available.\""); 
   }
 
-  pinMode(D8, OUTPUT);
+  // set input/output pins
+  pinMode(D8, OUTPUT); // heartbeat LED
   digitalWrite(D8, HIGH);
+  pinMode(D5, OUTPUT); // PIR active LED
+  digitalWrite(D5, LOW);
+
   pinMode(LDR, INPUT);
   pinMode(PIR, INPUT);
 
 
   // BME280
-  if (!bme.begin(0x76)) {
-    Serial.println(F("Could not find a valid BME280 sensor, check wiring!"));
-    while (1) delay(10);
+  if (!bme.begin(0x76)){
+    splunkpost("\"status\" : \"ERROR\", \"msg\" : \"BME280 not found.\""); 
+    // set an error LED high.. 
   }
-  
-  bme_temp->printSensorDetails();
-  bme_pressure->printSensorDetails();
-  bme_humidity->printSensorDetails();
+  else{
+    bmeErr = false;
+    //bme_temp->printSensorDetails(); bme_pressure->printSensorDetails(); bme_humidity->printSensorDetails();   
+  }
   // BME280 END
 
+  // MAX44009 lux sensor
+  if (!luxSensor.isConnected()){
+    splunkpost("\"status\" : \"ERROR\", \"msg\" : \"MAX44009 not found.\""); 
+    // set error LED high..
+  }else{
+    luxSensor.setAutomaticMode();
+    luxErr = false;
+  }
+  // MAX44009 lux sensor END
 
-  // sending restart event to splunk
-  // eventData = "{"
-  //             "\"host\": \"" + String(configManager.data.clientName) + "\", \"sourcetype\": \"diySensor\", \"index\": \"esp8266hec\", " 
-  //             "\"fields\" : {\"IP\" : \"" + String(WiFi.localIP().toString()) + "\" }, "
-  //             "\"event\"  : {\"status\" : \"" + "restarted" + "\"}"
-  //             "}";
-
-  myEventData = "\"status\" : \"" + String("restarted") + "\"";
-
-  splunkpost(configManager.data.collectorToken, myEventData, configManager.data.splunkindexer); 
-  Serial.println(eventData);
-
+  splunkpost("\"status\" : \"INFO\", \"msg\" : \"restarted\""); 
 }
 
 void loop()
@@ -202,29 +227,17 @@ void loop()
   WiFiManager.loop();
   updater.loop();    
 
+  // restart over web interface...
+  if(configManager.data.forceRestart){forceRestart();}
+
   // toggle LED every second
   digitalWrite(D8, (millis() / 1000) % 2); // doesnt even need a timer ... can be placed just inside the loop
 
+  // read PIR state
+  checkPir();
+
   if (millis() - msTickSplunk > configManager.data.updateSpeed){
     msTickSplunk = millis();
-
-    // Wait and print the time
-    time_t now = time(nullptr);
-    Serial.print(PSTR("Current local time: "));
-    Serial.print(asctime(localtime(&now)));   
-    Serial.print(" - UTC: ");
-    Serial.println(asctime(gmtime(&now)));
-
-    // getting the time as printout to send t to splunk for maybe indexing 
-            // struct tm * timeinfo;
-            // char timeStringBuff[50]; //50 chars should be enough
-             
-            // time (&now);
-            // timeinfo = localtime(&now);
-              
-            // strftime(timeStringBuff, sizeof(timeStringBuff), "%Y.%m.%d %H:%M:%S", timeinfo);
-            // //print like "const char*"
-            // Serial.println(timeStringBuff);
 
     // Read the light intensity
     LDRvalue=0; // reset
@@ -233,46 +246,43 @@ void loop()
       delay(10);
     }
     LDRvalue = map(LDRvalue / 4, 0,1024,0,100);
-      
+  
+
     // PIR
     // maybe put it outside the loop and trigger splunking it on change
-    checkPir();
+    //checkPir();
+    // if last trigger time is inside the last update intervall then log motion as true, else the checkPIR function has reset the pirTripped to 0 anyways
+    if (pirTrippedTime >= msTickSplunk-configManager.data.updateSpeed){pirTripped = 1;}
 
     // BME280
     sensors_event_t temp_event, pressure_event, humidity_event;
     bme_temp->getEvent(&temp_event);
     bme_pressure->getEvent(&pressure_event);
     bme_humidity->getEvent(&humidity_event);
-    //Serial.print(temp_event.temperature);
-    //Serial.print(humidity_event.relative_humidity);
-    //Serial.print(pressure_event.pressure);
     // BME280 END
 
-    // SPLUNK NOW
-    // eventData = "{ \"host\": \"" + String(configManager.data.clientName) + "\", \"sourcetype\": \"diySensor\", \"index\": \"esp8266hec\", " 
-    //               "\"fields\" : {"
-    //                             "\"IP\" : \"" + String(WiFi.localIP().toString()) + "\" , "
-    //                             "\"interval\" : \"" + String(configManager.data.updateSpeed/1000) + "\" "
-    //               "}, "
-    //               "\"event\"  : {"
-    //                             "\"PIR_State\": \"" + String(pirTripped) + "\" , "
-    //                             "\"lightIndex\": \"" + String(LDRvalue) + "\" , "
-    //                             "\"BME280_Temp\": \"" + String(temp_event.temperature) + "\" , "
-    //                             "\"BME280_Pressure\": \"" + String(pressure_event.pressure) + "\" , "
-    //                             "\"BME280_Humidity\": \"" + String(humidity_event.relative_humidity) + "\" , "
-    //                             "\"uptime\": \"" + String(millis()/1000) + "\" "
-    //               "}"
-    //             "}";
+    // only report these sensors if they are up and running...
+    String BME280_data = bmeErr ? "" :  "\"BME280_Temp\": \"" + String(temp_event.temperature) + "\" , "
+                                        "\"BME280_Pressure\": \"" + String(pressure_event.pressure) + "\" , "
+                                        "\"BME280_Humidity\": \"" + String(humidity_event.relative_humidity) + "\" , ";
 
-    myEventData =   "\"PIR_State\": \"" + String(pirTripped) + "\" , "
-                    "\"lightIndex\": \"" + String(LDRvalue) + "\" , "
-                    "\"BME280_Temp\": \"" + String(temp_event.temperature) + "\" , "
-                    "\"BME280_Pressure\": \"" + String(pressure_event.pressure) + "\" , "
-                    "\"BME280_Humidity\": \"" + String(humidity_event.relative_humidity) + "\" , "
-                    "\"uptime\": \"" + String(millis()/1000) + "\" ";
+    String MAX44009_data = luxErr ? "" :  "\"MAX44009_lux\": \"" + String(luxSensor.getLux()) + "\" , "
+                                          "\"MAX44009_IntegrationTime\": \"" + String(luxSensor.getIntegrationTime()/1000.0) + "\" , ";
+
+    //"\"BME280_Temp\": \"" + String(temp_event.temperature) + "\" , "
+    // "\"BME280_Pressure\": \"" + String(pressure_event.pressure) + "\" , "
+    // "\"BME280_Humidity\": \"" + String(humidity_event.relative_humidity) + "\" , "
+    // "\"MAX44009_lux\": \"" + String(luxSensor.getLux()) + "\" , "
+    // "\"MAX44009_IntegrationTime\": \"" + String(luxSensor.getIntegrationTime()/1000.0) + "\" , "
+    eventData =   "\"PIR_State\": \"" + String(pirTripped) + "\" , "
+                  "\"lightIndex\": \"" + String(LDRvalue) + "\" , "
+                  + BME280_data 
+                  + MAX44009_data + 
+                  "\"HCSR04_Distance\": \"" + String(HCSR04.read()) + "\" , "
+                  "\"uptime\": \"" + String(millis()/1000) + "\" ";
 
     //send off the data
-    splunkpost(configManager.data.collectorToken, myEventData, configManager.data.splunkindexer);
+    splunkpost(eventData);
   }
 
 }

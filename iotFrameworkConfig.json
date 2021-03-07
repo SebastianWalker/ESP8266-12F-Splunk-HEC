@@ -32,7 +32,7 @@
         "label": "HEC Token",
         "type": "char",
         "length": 40,
-        "value": "13b98a55-2060-4754-b639-072af70ae770"
+        "value": "82305a2c-c185-4778-b812-70da85314ec7"
     },
     {
         "name": "clientName",
@@ -53,5 +53,11 @@
         "type": "char",
         "length": 40,
         "value": "CET-1CEST,M3.5.0,M10.5.0/3"
+    },
+    {
+        "name": "forceRestart",
+        "label": "force restart",
+        "type": "bool",
+        "value": false
     }
 ]

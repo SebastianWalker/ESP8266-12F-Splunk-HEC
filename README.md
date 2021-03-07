@@ -31,6 +31,8 @@
 * [Splunk HEC Explained](https://medium.com/adarma-tech-blog/splunk-http-event-collectors-explained-2c22e87ab8d2)
 * [ESP8266 Pinouts](https://randomnerdtutorials.com/esp8266-pinout-reference-gpios/)
 * [Adafruit BME280 Documentation](https://learn.adafruit.com/adafruit-bme280-humidity-barometric-pressure-temperature-sensor-breakout/downloads)
+* [MAX44009 Abmient Light Sensor](https://datasheets.maximintegrated.com/en/ds/MAX44009.pdf)
+* [How much Lux?](https://en.wikipedia.org/wiki/Lux)
 * [Format time with strftime c++](http://www.cplusplus.com/reference/ctime/strftime/)
 * [TimeZone inputs for ConfigManager](https://github.com/esp8266/Arduino/blob/master/cores/esp8266/TZ.h) -> use the string between `PSTR("` and `")` without the double qoutes e.g. CET-1CEST,M3.5.0,M10.5.0/3
 
@@ -55,10 +57,13 @@
 
 ### Hardware
 * ESP8266 12F
-* ~~DHT11 (Signal to D4, Resistor from VCC to signal)~~ 
-* BME280 on I2C
+* ~~DHT11 (Signal to D4, Resistor from VCC to signal)~~ dropped due to unreliable readings
+* BME280 on I2C (temp, pressure, humidity)
 * LED (D8, used for 1s heartbeat)
+* LED (D5, used for PIR activity)
 * LDR (A0 and VCC, Potentiometer to A0 to adjust the LDR reading)
+* MAX44009 on I2C (ambient light sensor.. as improvement over the LDR solution)
+* HC-SR04 (D6,D7 ultra sonic distance sensor)
 
 ### Problems
 #### ESP8266 IoT Framework 
@@ -69,3 +74,11 @@
 * The Docker container with splunk is running in UTC. And no matter what i set as my Timezone in Splunk web UI.. i only get my charts reporting in UTC. 
 * Tried to set the TZ attribute in props.conf. No luck. Not for source, sourcetype or host.
 * Well.. just giving up on Docker running Splunk on my NAS.. Getting Splunk on a dedicated machine and see how that works out.
+#### Indextime vs Sensortime
+* After i send the timestamp from the sensor (which is NTP synced) to splunk i noticed a time difference. The splunk HEC is using indextime since within the HEC json i do not specify the time in epoch (yet). Appearently it takes 15s to index or the docker container is not in sync..
+* The time difference seems to getting worse over time... **insert picture**
+* checking the time online and the `date`in docker over terminal.. the docker container is 18s in the future right now. That fits the 18s time difference between index and sensor time..
+* Soooo...this is a docker problem... not a splunk one, nor a slow NAS :D
+* [to fix it in the docker container](https://askubuntu.com/questions/342854/what-is-the-command-line-statement-for-changing-the-system-clock) (at least untill restart) i used `sudo date new_date_time_string` (format: MMDDhhmmyyyy.ss) MM=Month, DD=Day, hh=Hour, mm=Minute, yyyy=Year, ss=Second
+#### Docker container restart
+* After restart of the container the inputs didnt show up in splunk anymore. After debugging the Arduinos and any possible code change.. figured out it is Splunk. The HEC global setting for SSL was enabled again.. guess this setting doesnt persit a restart of the container. After disableing SSL.. the inputs were fine again.
