@@ -23,6 +23,15 @@
   * SPLUNK_START_ARGS	--accept-license --name splunk
   * Docker is running in NAT mode.. that will change all port redirects on restart.. need to adjust the splunk-indexer port in ESP8266 every time
 
+### Learnings?
+* Difference in sending all sensor data in one event vs sending in batches (eg each sensor type as batch)?
+  * NoBatch: i just named the sensor like BME280_temp..
+  * Batch: just name the measurement Temperatur and have a sensor type as key:value
+    * nope that didnt work out as expected.. sensor type didnt get in the index for each sensor.. jsut for the last in the batch
+    * need to read the batching docu again maybe.. yeah. I tried to just send the event data. But it needs all the other information aswell.. also its stacked and so there is no `,`separator between the events curly braces.
+* Event index vs Metric index
+  * metric is faster for metrics ;) .. so they say
+
 ### mixed and mashed the following three informations to get my ESP8266 to talk to splunk
 * [ESP8266 Splunk HEC 1](https://maddosaurus.github.io/2018/08/05/esp8266-posting-to-splunk-hec)
 * [ESP8266 Splunk HEC 2](https://www.splunk.com/en_us/blog/tips-and-tricks/splunking-sensor-data-with-arduino-and-http-event-collector.html)

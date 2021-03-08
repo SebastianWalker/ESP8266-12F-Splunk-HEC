@@ -137,6 +137,53 @@ void splunkpost(String PostData){
   http.end();
 }
 
+/*
+ * Post multiple event data to splunk http event collector
+ * 
+ * PostData: 
+ * a string of json formatted event-nodes with key:value pairs 
+ * event:{key:value},event:{key:value, key:value}
+ */
+void splunkMultiPost(String events){
+  hecMessage = "{ \"host\": \"" + String(configManager.data.clientName) + "\", " 
+                 "\"sourcetype\": \"" + String(configManager.data.sourcetype) + "\", " 
+                 "\"index\": \"" + String(configManager.data.index) + "\", " 
+                 "\"time\" : \"" + String(getEpoch()) + "\" , "
+                 "\"fields\" : {"
+                                "\"IP\" : \"" + String(WiFi.localIP().toString()) + "\" , "
+                                "\"UTC\" : \"" + String(getUTC()) + "\" , "
+                                "\"Localtime\" : \"" + String(getLocaltime()) + "\" , "
+                                "\"interval\" : \"" + String(configManager.data.updateSpeed/1000) + "\" "
+                  "}, "
+                  + events + 
+               "}";
+  
+  
+  String payload = hecMessage;
+
+  //Build the request
+  WiFiClient client; // just to avoid deprecation error on http.begin(url)
+  HTTPClient http;
+  String splunkurl="http://"+ String(configManager.data.splunkindexer) +"/services/collector"; //removed :8088 due to DOCKER container port redirect.. port now lives in the splunkindexer variable
+  String tokenValue="Splunk " + String(configManager.data.collectorToken);
+  
+  // fire at will!! 
+  http.begin(client, splunkurl); // changed for deprected http.begin(url)
+  //http.begin(splunkurl);
+  http.addHeader("Content-Type", "application/json");
+  //Serial.println(tokenValue);
+  http.addHeader("Authorization", tokenValue);
+
+  Serial.print("splunking: ");
+  Serial.print(payload);
+
+  String contentlength = String(payload.length());
+  http.addHeader("Content-Length", contentlength );
+  http.POST(payload);
+  http.writeToStream(&Serial);
+  Serial.println();
+  http.end();
+}
 
 void checkPir(){ 
   // function need to get smarter
@@ -259,12 +306,12 @@ void loop()
     if (pirTrippedTime >= msTickSplunk-configManager.data.updateSpeed){pirTripped = 1;}
 
     // BME280
-    if(!bmeErr){
+    //if(!bmeErr){
       sensors_event_t temp_event, pressure_event, humidity_event;
       bme_temp->getEvent(&temp_event);
       bme_pressure->getEvent(&pressure_event);
       bme_humidity->getEvent(&humidity_event);
-    }
+    //}
     // BME280 END
 
     // only report these sensors if they are up and running...
@@ -285,6 +332,30 @@ void loop()
 
     //send off the data
     splunkpost(eventData);
-  }
 
+    eventData = "\"event\"  : {" 
+                  "\"lightIndex\": \"" + String(LDRvalue) + "\" , "
+                  "\"uptime\": \"" + String(millis()/1000) + "\" " + 
+                  "},"
+                  "\"event\"  : {" 
+                  "\"sensor\": \"" + String("HC-SR501") + "\" , "
+                  "\"PIR_State\": \"" + String(pirTripped) + "\" "
+                  "},"
+                  "\"event\"  : {" 
+                  "\"sensor\": \"" + String("HC-SR04") + "\" , "
+                  "\"distance\": \"" + String(HCSR04.read()) + "\" "
+                  "},"
+                  "\"event\"  : {" 
+                  "\"sensor\": \"" + String("BME280") + "\" , "
+                  + BME280_data +
+                  "},"
+                  "\"event\"  : {" 
+                  "\"sensor\": \"" + String("MAX44009") + "\" , "
+                  + MAX44009_data +
+                  "}";
+
+
+    //splunkMultiPost(eventData);
+    //"\"event\"  : {" + PostData + "}"
+  }
 }
