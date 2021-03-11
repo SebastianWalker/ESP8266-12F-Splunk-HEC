@@ -30,8 +30,8 @@ boolean luxErr = true; // set to false once connected in setup()
 int LDRvalue = 0;
 
 // HC-SR501 PIR
-#define PIR D4  // input pin
-#define PIR_LED D5 // output pin for PIR active
+#define PIR D5  // input pin
+
 static unsigned long pirTrippedTime = 0 ; // last time in millis() the PIR got tripped by motion
 boolean pirTripped = false; // is motion detected? true/false
 
@@ -40,6 +40,10 @@ boolean pirTripped = false; // is motion detected? true/false
 #define HCSR04_ECHO D6
 #define HCSR04_TRIG D7
 Ultrasonic HCSR04(HCSR04_TRIG, HCSR04_ECHO);
+
+// LEDs
+#define Heartbeat_LED D4 // D4 = GPIO2 = onchip LED
+#define Splunking_LED D8 // output pin for measurement and splunking indicator
 
 // Stuff for Splunk
 String eventData="";
@@ -192,7 +196,7 @@ void checkPir(){
   // if the splunk send intervall is high.. this only sends the state just before the measurement..
   // if intervall = 10m and PIR is triggered @2m but then nothing anymore.. we would report nothing..
   pirTripped = digitalRead(PIR);
-  digitalWrite(PIR_LED, pirTripped);
+  //digitalWrite(PIR_LED, pirTripped);
   if (pirTripped) pirTrippedTime = millis();
 }
 
@@ -240,10 +244,13 @@ void setup()
   }
 
   // set input/output pins
-  pinMode(D8, OUTPUT); // heartbeat LED
-  digitalWrite(D8, HIGH);
-  pinMode(D5, OUTPUT); // PIR active LED
-  digitalWrite(D5, LOW);
+  pinMode(Heartbeat_LED, OUTPUT); // heartbeat LED
+  digitalWrite(Heartbeat_LED, HIGH);
+  //pinMode(PIR_LED, OUTPUT); // PIR active LED
+  //digitalWrite(PIR_LED, LOW);
+  pinMode(Splunking_LED, OUTPUT); // PIR active LED
+  digitalWrite(Splunking_LED, LOW);
+ 
 
   pinMode(LDR, INPUT);
   pinMode(PIR, INPUT);
@@ -282,13 +289,15 @@ void loop()
   if(configManager.data.forceRestart){forceRestart();}
 
   // toggle LED every second
-  digitalWrite(D8, (millis() / 1000) % 2); // doesnt even need a timer ... can be placed just inside the loop
+  digitalWrite(Heartbeat_LED, (millis() / 1000) % 2); // doesnt even need a timer ... can be placed just inside the loop
 
   // read PIR state
   checkPir();
 
   if (millis() - msTickSplunk > configManager.data.updateSpeed){
     msTickSplunk = millis();
+
+    digitalWrite(Splunking_LED, HIGH);
 
     // Read the light intensity
     LDRvalue=0; // reset
@@ -333,6 +342,7 @@ void loop()
     //send off the data
     splunkpost(eventData);
 
+    // this is not how event stacking is working.. needs a fixfix
     eventData = "\"event\"  : {" 
                   "\"lightIndex\": \"" + String(LDRvalue) + "\" , "
                   "\"uptime\": \"" + String(millis()/1000) + "\" " + 
@@ -354,8 +364,7 @@ void loop()
                   + MAX44009_data +
                   "}";
 
-
     //splunkMultiPost(eventData);
-    //"\"event\"  : {" + PostData + "}"
+    digitalWrite(Splunking_LED, LOW);
   }
 }

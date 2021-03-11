@@ -47,11 +47,26 @@
 * [TimeZone inputs for ConfigManager](https://github.com/esp8266/Arduino/blob/master/cores/esp8266/TZ.h) -> use the string between `PSTR("` and `")` without the double qoutes e.g. CET-1CEST,M3.5.0,M10.5.0/3
 
 ### Splunk and Docker
+* me from the future speaking... nonono dont deal with docker...get a real pc :D
 * [splunk.pid unreadable](https://community.splunk.com/t5/Security/splunk-starting-as-root-user-how-to-change-this-one/m-p/305432)
 * due to Docker we can not use port 8088 for HEC.. it gets redirected from 32k-something to 8088 on the Docker container
 * Docker (at least my container) runs in UTC. 
   * Sounds like best practise... but i am not located in UTC. Splunk HEC will use index time for time stamps, since in the HEC payload (eventdata, metadata) there is no timestamp configured. 
   * Need to figure out how to set the timezone for the source/host/sourcetype of my sensor in props.conf to match my timezone (especially how to do it on Docker...)
+
+### Splunk on a ubuntu 20 box
+* [Downlaod Splunk](https://www.splunk.com/en_us/download/)
+* [Starting Splunk for the first time](https://docs.splunk.com/Documentation/Splunk/8.0.3/Installation/StartSplunkforthefirsttime)
+* install Splunk.. lazy by double clicking the .deb package in the downloads folder
+* set splunk home directory `export SPLUNK_HOME=/opt/splunk`
+* Warning: cannot create "/opt/splunk/etc/licenses/download-trial"
+  * seb@BlackboxDEV:/opt/splunk/bin$ sudo ./splunk enable boot-start -user splunk --accept-license [This Link](https://community.splunk.com/t5/Archive/Splunk-reports-first-time-run-failed/m-p/464516)
+* seb@BlackboxDEV:/opt/splunk/bin$ sudo ./splunk start
+* Splunk is running on localhost:8000
+* lets try restart then.. works.
+* .. what else to do witha fresh splunk install?
+
+
 
 ### IoT Framework 
 * to change the config parameters and rebuild the web pages 
@@ -92,3 +107,5 @@
 * [to fix it in the docker container](https://askubuntu.com/questions/342854/what-is-the-command-line-statement-for-changing-the-system-clock) (at least untill restart) i used `sudo date new_date_time_string` (format: MMDDhhmmyyyy.ss) MM=Month, DD=Day, hh=Hour, mm=Minute, yyyy=Year, ss=Second
 #### Docker container restart
 * After restart of the container the inputs didnt show up in splunk anymore. After debugging the Arduinos and any possible code change.. figured out it is Splunk. The HEC global setting for SSL was enabled again.. guess this setting doesnt persit a restart of the container. After disableing SSL.. the inputs were fine again.
+#### Serial gibber gabber after reboot
+* seems like the PIR output connected to input pin D4 is not a good idea. D4 is HIGH at boot and boot fails if pulled low (see ESP8266 pinout link).
