@@ -135,9 +135,9 @@ void splunkpost(String PostData){
 
   String contentlength = String(payload.length());
   http.addHeader("Content-Length", contentlength );
-  http.POST(payload);
+  int httpResponseCode = http.POST(payload);
   http.writeToStream(&Serial);
-  Serial.println();
+  Serial.printf("HTTP: %d", httpResponseCode);  
   http.end();
 }
 

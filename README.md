@@ -14,8 +14,8 @@
 * I want to use Visual-Studio-Code and the PlatformIO plugin.
 
 ### Scope
-* Everything i learn / do to get the ESP8266 to talk to Splunk on my NAS.
-* Let's learn...Splunk, Docker, ESP8266, Markdown, ...
+* Everything i learn / do to get the ESP8266 to talk to Splunk ~~on my NAS~~ on a dedicated computer.
+* Let's learn...Splunk, ~~Docker~~, ESP8266, Markdown, Linux...
 
 ## Documentation
 * [ESP8266 IoT Framework](https://github.com/maakbaas/esp8266-iot-framework)
@@ -31,6 +31,8 @@
     * need to read the batching docu again maybe.. yeah. I tried to just send the event data. But it needs all the other information aswell.. also its stacked and so there is no `,`separator between the events curly braces.
 * Event index vs Metric index
   * metric is faster for metrics ;) .. so they say
+* Light sensors.. i wanted to substitute the LDR with a I2C Llux sensor (MAX44009).. but instead i keep both. This way i can run scatter plots with both and see how good my cheap LDR holds up against a 4€ sensor :D
+
 
 ### mixed and mashed the following three informations to get my ESP8266 to talk to splunk
 * [ESP8266 Splunk HEC 1](https://maddosaurus.github.io/2018/08/05/esp8266-posting-to-splunk-hec)
@@ -66,7 +68,18 @@
 * lets try restart then.. works.
 * .. what else to do witha fresh splunk install?
 
-
+#### Migrate from Docker to ubuntu 20 box
+* stopped the container
+* copied the esp8266hec index files from `lib/splunk/` to the new destination
+* copied the indexes.conf (just the content for the esp8266hec index) to the new destination
+* since i copied the indexes.conf file with my linux user.. need to set the splunk user as owner `sudo chown splunk:splunk indexes.conf`
+* the esp8266hec index folder and .dat is not that easy to change owner.. on terminal i get permission denied to `cd /opt/splunk/var/lib/splunk`.. but if i do `sudo su` it is allowed :D then just `chown -R splunk:splunk esp8266hec` and `chown splunk:splunk esp8266hec.dat`
+* use `ls -l`to list the files and folders with owners 
+* the permissions dont look the same on the new copied index files...`sudu su` .. `chmod 600 esp8266hec.dat` .. `chmod -R 700 esp8266hec`
+* success. the index is listed in splunk web. searching works too.
+* now just setup the HEC on the new instance and reconfigure the sensor box. DON'T FORGET TO DISABLE SSL IN HEC GLOBAL SETTINGS! (trust me.. i nearly started troubleshooting this again...)
+* get the dashboard over.. well i just copy and paste the source code...
+* whole migration with lots of google-fu and writing this text took a bit over one hour... and i have little skills in linux or splunk :D
 
 ### IoT Framework 
 * to change the config parameters and rebuild the web pages 
