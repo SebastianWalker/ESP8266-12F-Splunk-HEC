@@ -1,6 +1,6 @@
 #include <Arduino.h>
 
-// Stuff for the WiFi manager 
+// Stuff for the IoT Framework 
 #include "LittleFS.h"
 #include "WiFiManager.h"
 #include "webServer.h"
@@ -12,18 +12,19 @@
 #include "ESP8266HTTPClient.h"
 
 // I2C sensors
-#include <Wire.h>  
-// BME280 
-#include <Adafruit_BME280.h>
-boolean bmeErr = true; // set to false once wire.begin is successfull 
-Adafruit_BME280 bme; // use I2C interface
-Adafruit_Sensor *bme_temp = bme.getTemperatureSensor();
-Adafruit_Sensor *bme_pressure = bme.getPressureSensor();
-Adafruit_Sensor *bme_humidity = bme.getHumiditySensor();
-// MAX44009
-#include <Max44009.h>
-Max44009 luxSensor(0x4A);
-boolean luxErr = true; // set to false once connected in setup()
+	#include <Wire.h>  
+	// BME280 
+	#include <Adafruit_BME280.h>
+	boolean bmeErr = true; // set to false once wire.begin is successfull 
+	Adafruit_BME280 bme; // use I2C interface
+	Adafruit_Sensor *bme_temp = bme.getTemperatureSensor();
+	Adafruit_Sensor *bme_pressure = bme.getPressureSensor();
+	Adafruit_Sensor *bme_humidity = bme.getHumiditySensor();
+	
+	// MAX44009
+	#include <Max44009.h>
+	Max44009 luxSensor(0x4A);
+	boolean luxErr = true; // set to false once connected in setup()
 
 // LDR input pin (ESP8266 only got one ADC on A0)
 #define LDR A0
@@ -58,7 +59,7 @@ static unsigned long msTickSplunk = 0;
  */
 String getLocaltime(){
   time_t now = time(nullptr);
-  struct tm * timeinfo;
+	  struct tm * timeinfo;
   char timeStringBuff[20];
     
   time (&now);
@@ -138,55 +139,10 @@ void splunkpost(String PostData){
   int httpResponseCode = http.POST(payload);
   http.writeToStream(&Serial);
   Serial.printf("HTTP: %d", httpResponseCode);  
-  http.end();
-}
-
-/*
- * Post multiple event data to splunk http event collector
- * 
- * PostData: 
- * a string of json formatted event-nodes with key:value pairs 
- * event:{key:value},event:{key:value, key:value}
- */
-void splunkMultiPost(String events){
-  hecMessage = "{ \"host\": \"" + String(configManager.data.clientName) + "\", " 
-                 "\"sourcetype\": \"" + String(configManager.data.sourcetype) + "\", " 
-                 "\"index\": \"" + String(configManager.data.index) + "\", " 
-                 "\"time\" : \"" + String(getEpoch()) + "\" , "
-                 "\"fields\" : {"
-                                "\"IP\" : \"" + String(WiFi.localIP().toString()) + "\" , "
-                                "\"UTC\" : \"" + String(getUTC()) + "\" , "
-                                "\"Localtime\" : \"" + String(getLocaltime()) + "\" , "
-                                "\"interval\" : \"" + String(configManager.data.updateSpeed/1000) + "\" "
-                  "}, "
-                  + events + 
-               "}";
-  
-  
-  String payload = hecMessage;
-
-  //Build the request
-  WiFiClient client; // just to avoid deprecation error on http.begin(url)
-  HTTPClient http;
-  String splunkurl="http://"+ String(configManager.data.splunkindexer) +"/services/collector"; //removed :8088 due to DOCKER container port redirect.. port now lives in the splunkindexer variable
-  String tokenValue="Splunk " + String(configManager.data.collectorToken);
-  
-  // fire at will!! 
-  http.begin(client, splunkurl); // changed for deprected http.begin(url)
-  //http.begin(splunkurl);
-  http.addHeader("Content-Type", "application/json");
-  //Serial.println(tokenValue);
-  http.addHeader("Authorization", tokenValue);
-
-  Serial.print("splunking: ");
-  Serial.print(payload);
-
-  String contentlength = String(payload.length());
-  http.addHeader("Content-Length", contentlength );
-  http.POST(payload);
-  http.writeToStream(&Serial);
   Serial.println();
   http.end();
+
+  // 
 }
 
 void checkPir(){ 
@@ -226,7 +182,6 @@ void setup()
 
   //Set the timezone
   timeSync.begin(configManager.data.sensorTimezone);
-
 
   //Wait for connection
   timeSync.waitForSyncResult(10000);
@@ -342,29 +297,6 @@ void loop()
     //send off the data
     splunkpost(eventData);
 
-    // this is not how event stacking is working.. needs a fixfix
-    eventData = "\"event\"  : {" 
-                  "\"lightIndex\": \"" + String(LDRvalue) + "\" , "
-                  "\"uptime\": \"" + String(millis()/1000) + "\" " + 
-                  "},"
-                  "\"event\"  : {" 
-                  "\"sensor\": \"" + String("HC-SR501") + "\" , "
-                  "\"PIR_State\": \"" + String(pirTripped) + "\" "
-                  "},"
-                  "\"event\"  : {" 
-                  "\"sensor\": \"" + String("HC-SR04") + "\" , "
-                  "\"distance\": \"" + String(HCSR04.read()) + "\" "
-                  "},"
-                  "\"event\"  : {" 
-                  "\"sensor\": \"" + String("BME280") + "\" , "
-                  + BME280_data +
-                  "},"
-                  "\"event\"  : {" 
-                  "\"sensor\": \"" + String("MAX44009") + "\" , "
-                  + MAX44009_data +
-                  "}";
-
-    //splunkMultiPost(eventData);
     digitalWrite(Splunking_LED, LOW);
   }
 }

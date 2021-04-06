@@ -19,12 +19,13 @@
 
 ## Documentation
 * [ESP8266 IoT Framework](https://github.com/maakbaas/esp8266-iot-framework)
+* [HEC Error Codes](https://docs.splunk.com/Documentation/Splunk/8.1.2/Data/TroubleshootHTTPEventCollector)
 * [QNAP Docker Splunk](https://docs.google.com/document/d/1_8vvd1eB1JU5wbU0zWW05CGtKhPdAXr0pFtFbg6_nl4/edit#heading=h.c8ma5kq9d3ms)
   * SPLUNK_START_ARGS	--accept-license --name splunk
   * Docker is running in NAT mode.. that will change all port redirects on restart.. need to adjust the splunk-indexer port in ESP8266 every time
 
 ### Learnings?
-* Difference in sending all sensor data in one event vs sending in batches (eg each sensor type as batch)?
+* Difference in sending all sensor data in one eventvs sending in batches (eg each sensor type as batch)?
   * NoBatch: i just named the sensor like BME280_temp..
   * Batch: just name the measurement Temperatur and have a sensor type as key:value
     * nope that didnt work out as expected.. sensor type didnt get in the index for each sensor.. jsut for the last in the batch
@@ -32,7 +33,7 @@
 * Event index vs Metric index
   * metric is faster for metrics ;) .. so they say
 * Light sensors.. i wanted to substitute the LDR with a I2C Llux sensor (MAX44009).. but instead i keep both. This way i can run scatter plots with both and see how good my cheap LDR holds up against a 4€ sensor :D
-
+* after splunkpost there is a `{"text":"Success","code":0}` which is followed by a a 'HTTP200', but when `Enable indexer acknnowledgement` is checked.. it returns `{"text":"Data channel is missing","code":10}`followed by a 'HTTP400' --> question is.. why (see HEC error coeds in Docu section) is splunk returning this and how can i use it :D
 
 ### mixed and mashed the following three informations to get my ESP8266 to talk to splunk
 * [ESP8266 Splunk HEC 1](https://maddosaurus.github.io/2018/08/05/esp8266-posting-to-splunk-hec)
