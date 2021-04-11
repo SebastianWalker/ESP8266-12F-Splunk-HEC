@@ -7,15 +7,16 @@
 * This readme is just my personal note taking on my endeavour to learn. And so i have a place to review how i did this when i'm old.. :D
 
 ### Specific
-* I have a few ESP8266-12F..
+* I have a few ESP8266-12F (Node MCU V3) and also a few Wemos D1 mini.
 * I always wanted to use them for their wifi cababilities... didnt have a project/time so far.
 * I am implementing Splunk at work. Learning on the go.. why not play with it at home too..
-* I can run splunk in a docker on my QNAP NAS.. 
+* I can run splunk in a docker on my QNAP NAS.. (not the best idea for me at least..)
+* I have a spare mini PC (ASUS PN60) to run ubuntu and splunk.
 * I want to use Visual-Studio-Code and the PlatformIO plugin.
 
 ### Scope
 * Everything i learn / do to get the ESP8266 to talk to Splunk ~~on my NAS~~ on a dedicated computer.
-* Let's learn...Splunk, ~~Docker~~, ESP8266, Markdown, Linux...
+* Let's learn...Splunk, ~~Docker~~, ESP8266, Markdown, GitHub, Linux...
 
 ## Documentation
 * [ESP8266 IoT Framework](https://github.com/maakbaas/esp8266-iot-framework)
@@ -55,7 +56,7 @@
 * due to Docker we can not use port 8088 for HEC.. it gets redirected from 32k-something to 8088 on the Docker container
 * Docker (at least my container) runs in UTC. 
   * Sounds like best practise... but i am not located in UTC. Splunk HEC will use index time for time stamps, since in the HEC payload (eventdata, metadata) there is no timestamp configured. 
-  * Need to figure out how to set the timezone for the source/host/sourcetype of my sensor in props.conf to match my timezone (especially how to do it on Docker...)
+  * Need to figure out how to set the timezone for the source/host/sourcetype of my sensor in props.conf to match my timezone (especially how to do it on Docker...).. everything i tried didnt work out as planned.. 
 
 ### Splunk on a ubuntu 20 box
 * [Downlaod Splunk](https://www.splunk.com/en_us/download/)
@@ -96,13 +97,15 @@
 
 ### Hardware
 * ESP8266 12F
-* ~~DHT11 (Signal to D4, Resistor from VCC to signal)~~ dropped due to unreliable readings
+* ~~DHT11 (temp, humidity)~~ dropped due to unreliable readings
 * BME280 on I2C (temp, pressure, humidity)
-* LED (D8, used for 1s heartbeat)
-* LED (D5, used for PIR activity)
-* LDR (A0 and VCC, Potentiometer to A0 to adjust the LDR reading)
-* MAX44009 on I2C (ambient light sensor.. as improvement over the LDR solution)
-* HC-SR04 (D6,D7 ultra sonic distance sensor)
+* LED (1s heartbeat)
+* LED (PIR activity)
+* LED (Splunking signal)
+* LDR (cheap light intensity sensor)
+* MAX44009 on I2C (ambient light sensor measures LUX.. as addition/improvement over the LDR solution)
+* HC-SR04 (ultra sonic distance sensor)
+* HC-SR501 (PIR sensor)
 
 ### Problems
 #### ESP8266 IoT Framework 
