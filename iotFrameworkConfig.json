@@ -4,14 +4,15 @@
         "label": "Project Name",
         "type": "char",
         "length": 32,
-        "value": "ESP8266 Splunk HEC"
+        "hidden":true,
+        "value": "BlackBox"
     },
     {
         "name": "splunkindexer",
         "label": "Splunk Indexer (IP:Port)",
         "type": "char",
         "length": 25,
-        "value": "192.168.1.121:32773"
+        "value": "192.168.1.234:8088"
     },
     {
         "name": "index",
@@ -32,11 +33,11 @@
         "label": "HEC Token",
         "type": "char",
         "length": 40,
-        "value": "82305a2c-c185-4778-b812-70da85314ec7"
+        "value": "8bb95e1a-4025-4949-ba08-367e698dd948"
     },
     {
         "name": "clientName",
-        "label": "Client Name",
+        "label": "Host Name",
         "type": "char",
         "length": 10,
         "value": "HQ"

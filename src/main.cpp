@@ -13,7 +13,7 @@
 
 // I2C sensors
 	#include <Wire.h>  
-	// BME280 
+	// BME280: Temperature, Humiditiy, Pressure
 	#include <Adafruit_BME280.h>
 	boolean bmeErr = true; // set to false once wire.begin is successfull 
 	Adafruit_BME280 bme; // use I2C interface
@@ -21,7 +21,13 @@
 	Adafruit_Sensor *bme_pressure = bme.getPressureSensor();
 	Adafruit_Sensor *bme_humidity = bme.getHumiditySensor();
 	
-	// MAX44009
+  // AHT10: Temperatur, Humidity
+  #include <Adafruit_AHTX0.h>
+  boolean ahtErr = true; // set to false once wire.begin is successfull 
+  Adafruit_AHTX0 aht;
+  Adafruit_Sensor *aht_humidity, *aht_temp;
+
+	// MAX44009: Lux
 	#include <Max44009.h>
 	Max44009 luxSensor(0x4A);
 	boolean luxErr = true; // set to false once connected in setup()
@@ -36,7 +42,7 @@ int LDRvalue = 0;
 static unsigned long pirTrippedTime = 0 ; // last time in millis() the PIR got tripped by motion
 boolean pirTripped = false; // is motion detected? true/false
 
-// HC-SR04 ultra sonic distance sensor
+// HC-SR04: ultra sonic distance sensor
 #include <Ultrasonic.h>
 #define HCSR04_ECHO D6
 #define HCSR04_TRIG D7
@@ -221,6 +227,21 @@ void setup()
   }
   // BME280 END
 
+  // AHT10
+  if (!aht.begin()){
+    splunkpost("\"status\" : \"ERROR\", \"msg\" : \"AHT10 not found.\""); 
+    // set an error LED high.. 
+  }
+  else{
+    ahtErr = false; 
+    Serial.println("AHT10/AHT20 Found!");
+    aht_temp = aht.getTemperatureSensor();
+    aht_humidity = aht.getHumiditySensor();
+    //aht_temp->printSensorDetails();
+    //aht_humidity->printSensorDetails();
+  }
+  // AHT10 END
+
   // MAX44009 lux sensor
   if (!luxSensor.isConnected()){
     splunkpost("\"status\" : \"ERROR\", \"msg\" : \"MAX44009 not found.\""); 
@@ -278,10 +299,21 @@ void loop()
     //}
     // BME280 END
 
+    // AHT10
+      sensors_event_t aht10_humidity, aht10_temp;
+      aht_humidity->getEvent(&aht10_humidity);
+      aht_temp->getEvent(&aht10_temp);
+    // AHT10 END
+
+
     // only report these sensors if they are up and running...
     String BME280_data = bmeErr ? "" :  "\"BME280_Temp\": \"" + String(temp_event.temperature) + "\" , "
                                         "\"BME280_Pressure\": \"" + String(pressure_event.pressure) + "\" , "
                                         "\"BME280_Humidity\": \"" + String(humidity_event.relative_humidity) + "\" , ";
+
+    // only report these sensors if they are up and running...
+    String AHT10_data = ahtErr ? "" :  "\"AHT10_Temp\": \"" + String(aht10_temp.temperature) + "\" , "
+                                       "\"AHT10_Humidity\": \"" + String(aht10_humidity.relative_humidity) + "\" , ";
 
     String MAX44009_data = luxErr ? "" :  "\"MAX44009_lux\": \"" + String(luxSensor.getLux()) + "\" , "
                                           "\"MAX44009_IntegrationTime\": \"" + String(luxSensor.getIntegrationTime()/1000.0) + "\" , ";
@@ -290,6 +322,7 @@ void loop()
     eventData =   "\"PIR_State\": \"" + String(pirTripped) + "\" , "
                   "\"lightIndex\": \"" + String(LDRvalue) + "\" , "
                   + BME280_data 
+                  + AHT10_data
                   + MAX44009_data + 
                   "\"HCSR04_Distance\": \"" + String(HCSR04.read()) + "\" , "
                   "\"uptime\": \"" + String(millis()/1000) + "\" ";
