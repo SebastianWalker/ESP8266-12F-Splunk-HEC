@@ -23,7 +23,7 @@
 	
   // AHT10: Temperatur, Humidity
   #include <Adafruit_AHTX0.h>
-  boolean ahtErr = true; // set to false once wire.begin is successfull 
+  boolean ahtErr = true; // set to false once wire.begin is successful 
   Adafruit_AHTX0 aht;
   Adafruit_Sensor *aht_humidity, *aht_temp;
 
@@ -257,9 +257,8 @@ void setup()
 
 void loop()
 {
-  //software interrupts
-  WiFiManager.loop();
-  updater.loop();    
+  //software interrupts.. dont touch next line!
+  WiFiManager.loop();updater.loop();configManager.loop(); 
 
   // restart over web interface...
   if(configManager.data.forceRestart){forceRestart();}
@@ -311,8 +310,8 @@ void loop()
                                         "\"BME280_Pressure\": \"" + String(pressure_event.pressure) + "\" , "
                                         "\"BME280_Humidity\": \"" + String(humidity_event.relative_humidity) + "\" , ";
 
-    // only report these sensors if they are up and running...
-    String AHT10_data = ahtErr ? "" :  "\"AHT10_Temp\": \"" + String(aht10_temp.temperature) + "\" , "
+    // AHT10 sometimes reports ZERO humidity.. thats bullshit.. so dont report anything
+    String AHT10_data = (ahtErr || aht10_humidity.relative_humidity == 0) ? "" :  "\"AHT10_Temp\": \"" + String(aht10_temp.temperature) + "\" , "
                                        "\"AHT10_Humidity\": \"" + String(aht10_humidity.relative_humidity) + "\" , ";
 
     String MAX44009_data = luxErr ? "" :  "\"MAX44009_lux\": \"" + String(luxSensor.getLux()) + "\" , "
