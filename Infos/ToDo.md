@@ -28,3 +28,5 @@
 
 - timezone change with configmanager is used in setup... right now it needs a restart to take affect...
     - store the value in a string and compare it in the loop.. if it did change.. resync time..?
+
+- use the framework Dashboard to show HTTP response code over time
